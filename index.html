@@ -526,9 +526,8 @@
   function tampilkanHasil(data) {
     var total = state.urutan.length;
     var benar = data.benar || 0;
-    var salah = data.total - benar - (data.kosong || 0);
-    var kosong = (data.kosong != null ? data.kosong : (total - benar - Math.max(0, data.total - benar)));
-    kosong = Math.max(0, total - benar - Math.max(0, data.total - benar));
+    var salah = data.salah != null ? data.salah : Math.max(0, total - benar - (data.kosong || 0));
+    var kosong = data.kosong != null ? data.kosong : Math.max(0, total - benar - salah);
     el.resultNilai.textContent = data.nilai != null ? data.nilai : Math.round((benar / total) * 100);
     el.rBenar.textContent = benar;
     el.rSalah.textContent = salah;

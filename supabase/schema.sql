@@ -499,6 +499,7 @@ declare
   v_benar integer := 0;
   v_total integer := 0;
   v_kosong integer := 0;
+  v_salah integer := 0;
   v_nilai integer := 0;
   v_username text;
 begin
@@ -511,18 +512,21 @@ begin
   for v_j in select * from jsonb_array_elements(v_ans) loop
     v_total := v_total + 1;
     select kunci into v_kunci from public.soal_bank where id = v_j->>'soalId';
-    if coalesce(v_j->>'jawaban', '') <> '' and v_kunci = v_j->>'jawaban' then
+    if coalesce(v_j->>'jawaban', '') = '' then
+      v_kosong := v_kosong + 1;
+    elsif v_kunci = v_j->>'jawaban' then
       v_benar := v_benar + 1;
+    else
+      v_salah := v_salah + 1;
     end if;
   end loop;
-  v_kosong := v_total - v_benar;
   v_nilai := case when v_total > 0 then round((v_benar * 100.0) / v_total) else 0 end;
   insert into public.hasil (username, nis, nama, benar, total, nilai, ts)
   values (v_username, coalesce(p_payload->>'nis', ''), coalesce(p_payload->>'nama', ''),
           v_benar, v_total, v_nilai, now());
   update public.sesi set status = 'SELESAI' where username = v_username;
   return json_build_object('ok', true, 'data', json_build_object(
-    'benar', v_benar, 'total', v_total, 'nilai', v_nilai, 'kosong', v_kosong
+    'benar', v_benar, 'salah', v_salah, 'kosong', v_kosong, 'total', v_total, 'nilai', v_nilai
   ));
 end $$;
 
