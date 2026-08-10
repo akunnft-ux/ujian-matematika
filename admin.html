@@ -186,7 +186,8 @@
   }
 
   window.__resetLogin = function (username) {
-    AppAPI.call("reset-login", { username: username }).then(function () {
+    AppAPI.call("reset-login", { username: username }).then(function (res) {
+      if (!res.ok) { toast(res.error || "Gagal reset login"); return; }
       toast("Login direset — siswa bisa masuk lagi");
       muatSiswa();
     }).catch(function (err) { toast(err.message); });
@@ -237,7 +238,8 @@
     var u = document.getElementById("nuUser").value.trim();
     var p = document.getElementById("nuPass").value;
     if (!u || !p) { toast("Isi username & password"); return; }
-    AppAPI.call("tambah-user", { user: { username: u, passHash: p, role: "guru", aktif: true } }).then(function () {
+    AppAPI.call("tambah-user", { user: { username: u, passHash: p, role: "guru", aktif: true } }).then(function (res) {
+      if (!res.ok) { toast(res.error || "Gagal membuat akun guru"); return; }
       toast("Akun guru " + u + " dibuat");
       document.getElementById("nuUser").value = ""; document.getElementById("nuPass").value = "";
       muatUsers();
@@ -246,13 +248,16 @@
 
   function muatUsers() {
     AppAPI.call("get-users").then(function (res) {
-      var list = (res.data || []).filter(function (x) { return x.role === "guru"; });
       var box = document.getElementById("userList");
+      if (!res.ok) { box.innerHTML = '<div class="muted">' + (res.error || "Gagal memuat daftar guru") + '</div>'; return; }
+      var list = (res.data || []).filter(function (x) { return x.role === "guru"; });
       if (!list.length) { box.innerHTML = '<div class="muted">Belum ada akun guru.</div>'; return; }
       box.innerHTML = "<table class='data'><thead><tr><th>Username</th><th>Role</th><th>Status</th></tr></thead><tbody>" +
         list.map(function (u) {
           return "<tr><td>" + u.username + "</td><td>" + u.role + "</td><td><span class='badge " + (u.aktif ? "badge-green" : "badge-red") + "'>" + (u.aktif ? "aktif" : "nonaktif") + "</span></td></tr>";
         }).join("") + "</tbody></table>";
+    }).catch(function (err) {
+      document.getElementById("userList").innerHTML = '<div class="muted">' + err.message + '</div>';
     });
   }
 
@@ -269,12 +274,23 @@
     });
   }
 
-  /* ===== AUTO-LOGIN jika sesi admin ada ===== */
+  /* ===== AUTO-LOGIN jika sesi admin ada =====
+   * Sesi divalidasi ke server dulu — jika sudah tidak berlaku
+   * (mis. direset/dibersihkan), paksa login ulang. */
   (function () {
     var s = AppSession.data();
-    if (s && s.role === "admin") {
-      masukDashboard(s);
-    }
+    if (!s || s.role !== "admin") return;
+    AppAPI.call("get-progress").then(function (res) {
+      if (res.ok) {
+        masukDashboard(s);
+      } else {
+        AppSession.clear();
+        document.getElementById("adminMsg").textContent = "Sesi berakhir, silakan login ulang.";
+      }
+    }).catch(function () {
+      AppSession.clear();
+      document.getElementById("adminMsg").textContent = "Sesi berakhir, silakan login ulang.";
+    });
   })();
 })();
 </script>

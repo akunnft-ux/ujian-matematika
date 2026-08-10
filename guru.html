@@ -332,7 +332,10 @@ function renderBank() {
     btnStatus.textContent = s.status === "aktif" ? "Nonaktifkan" : "Aktifkan";
     btnStatus.addEventListener("click", function () {
       s.status = s.status === "aktif" ? "draft" : "aktif";
-      AppAPI.call("simpan-soal", { soal: s }).then(function () { muatBankSoal(); toast("Status diperbarui"); });
+      AppAPI.call("simpan-soal", { soal: s }).then(function (res) {
+        if (!res.ok) { toast(res.error || "Gagal memperbarui status"); return; }
+        muatBankSoal(); toast("Status diperbarui");
+      }).catch(function (err) { toast(err.message); });
     });
     foot.appendChild(btnEdit);
     foot.appendChild(btnStatus);
@@ -406,6 +409,10 @@ function renderBank() {
       }
       var kode = document.getElementById("xlsxUjianKode").value.trim();
       AppAPI.call("upload-siswa", { rows: rows.map(function (r) { return { username: r.username, password: r.password, nis: r.nis, nama: r.nama, kelas: r.kelas, ujianId: r.ujianId || kode }; }) }).then(function (res) {
+        if (!res.ok) {
+          document.getElementById("xlsxResult").innerHTML = '<div class="alert alert-error">Gagal: ' + (res.error || "gagal menyimpan siswa") + "</div>";
+          return;
+        }
         var info = '<div class="alert alert-success">✅ ' + res.data.total + " siswa terdaftar. Akun (username/password) siap dipakai.</div>";
         if (res.data.usernames && res.data.usernames.length) {
           info += '<div class="mt card" style="font-size:13px"><b>Username:</b> ' + res.data.usernames.join(", ") + "</div>";
@@ -464,6 +471,7 @@ function renderBank() {
       pembahasan: document.getElementById("mPembahasan").value.trim(),
       status: "draft", uploader: (AppSession.data() || {}).username
     } }).then(function (res) {
+      if (!res.ok) { toast(res.error || "Gagal menyimpan soal"); return; }
       toast("Soal tersimpan: " + res.data.id);
       resetForm();
       muatBankSoal();
@@ -534,13 +542,17 @@ function renderBank() {
         blocks: blok, opsi: opsi, kunci: ksel.value, pembahasan: body.querySelector("#pembahasan").value.trim(),
         status: s.status, uploader: s.uploader
       };
-      AppAPI.call("simpan-soal", { soal: up }).then(function () {
+      AppAPI.call("simpan-soal", { soal: up }).then(function (res) {
+        if (!res.ok) { toast(res.error || "Gagal memperbarui soal"); return; }
         toast("Soal diperbarui"); tutupEdit(); muatBankSoal();
       }).catch(function (err) { toast(err.message); });
     };
     document.getElementById("editHapus").onclick = function () {
       if (!confirm("Hapus soal ini?")) return;
-      AppAPI.call("hapus-soal", { id: editingId }).then(function () { tutupEdit(); muatBankSoal(); toast("Soal dihapus"); });
+      AppAPI.call("hapus-soal", { id: editingId }).then(function (res) {
+        if (!res.ok) { toast(res.error || "Gagal menghapus soal"); return; }
+        tutupEdit(); muatBankSoal(); toast("Soal dihapus");
+      }).catch(function (err) { toast(err.message); });
     };
     function mkInput(id, val) {
       var i = document.createElement("input"); i.className = "input"; i.id = id; i.value = val || "";
@@ -596,6 +608,7 @@ function renderBank() {
       soalIds: ids
     };
     AppAPI.call("buat-ujian", { ujian: ujian }).then(function (res) {
+      if (!res.ok) { toast(res.error || "Gagal membuat ujian"); return; }
       toast("Ujian dibuat: " + res.data.kode);
       renderUjianList();
     }).catch(function (err) { toast(err.message); });
@@ -618,10 +631,22 @@ function renderBank() {
   renderOpsiInputs();
   editorManual = BlockEditor.create(document.getElementById("mBlocks"), [{ type: "text", value: "" }]);
 
-  // Cek sesi tersimpan (reload tidak perlu login ulang)
+  // Cek sesi tersimpan (reload tidak perlu login ulang) — validasi ke server dulu
   var sesi = AppSession.data();
   if (sesi && (sesi.role === "guru" || sesi.role === "admin")) {
-    masukDashboard(sesi);
+    AppAPI.call("get-hasil").then(function (res) {
+      if (res.ok) {
+        masukDashboard(sesi);
+      } else {
+        AppSession.clear();
+        document.getElementById("guruMsg").textContent = "Sesi berakhir, silakan login ulang.";
+        userbox.style.display = "none";
+      }
+    }).catch(function () {
+      AppSession.clear();
+      document.getElementById("guruMsg").textContent = "Sesi berakhir, silakan login ulang.";
+      userbox.style.display = "none";
+    });
   } else {
     userbox.style.display = "none";
   }
