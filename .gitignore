@@ -1,0 +1,15 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# LibreOffice lock files
+.~lock.*#
+
+# Node
+node_modules/
+
+# Local-only / env
+.env
+*.local

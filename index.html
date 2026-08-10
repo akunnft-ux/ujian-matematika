@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ujian Matematika Online — Siswa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="logo"><span class="mark">U</span> Ujian Matematika Online</div>
+    <div class="userbox" id="userbox"></div>
+  </header>
+
+  <main class="container">
+
+    <!-- ===== LAYAR LOGIN ===== -->
+    <section id="screen-login" class="screen-auth">
+      <div class="card card-login" style="margin-top:24px">
+        <div class="hero">
+          <div class="hero-mark">U</div>
+          <div class="hero-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+          <h1 class="hero-title">Ujian Matematika Online</h1>
+          <p class="hero-sub">Masukkan username, password, dan kode ujian yang diberikan oleh pengawas / guru Anda.</p>
+        </div>
+        <div class="card-body">
+          <div style="width:100%; max-width:360px; margin:0 auto">
+            <div class="field">
+              <label for="loginUsername">Username</label>
+              <div class="input-icon-wrap">
+                <i class="fa-solid fa-user"></i>
+                <input id="loginUsername" class="input" type="text" placeholder="Username siswa" autocomplete="username">
+              </div>
+            </div>
+            <div class="field">
+              <label for="loginPassword">Password</label>
+              <div class="input-icon-wrap">
+                <i class="fa-solid fa-lock"></i>
+                <input id="loginPassword" class="input" type="password" placeholder="Password siswa" autocomplete="current-password">
+              </div>
+            </div>
+            <div class="field">
+              <label for="loginKode">Kode Ujian</label>
+              <div class="input-icon-wrap">
+                <i class="fa-solid fa-key"></i>
+                <input id="loginKode" class="input" type="text" placeholder="Contoh: EXM-2026-001" autocomplete="off" style="text-align:center; text-transform:uppercase; font-size:18px; letter-spacing:2px">
+              </div>
+            </div>
+            <button id="btnLogin" class="btn btn-block" style="padding:14px">Lanjut <i class="fa-solid fa-arrow-right"></i></button>
+            <p id="loginMsg" class="muted" style="margin-top:12px; font-size:13px"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LAYAR KONFIRMASI DATA + TOKEN ===== -->
+    <section id="screen-confirm" class="hidden screen-auth">
+      <div class="card card-login" style="margin-top:24px">
+        <div class="hero">
+          <div class="hero-mark">U</div>
+          <div class="hero-icon"><i class="fa-solid fa-user-check"></i></div>
+          <h1 class="hero-title">Periksa Data Anda</h1>
+          <p class="hero-sub">Pastikan data di bawah sudah sesuai, lalu masukkan token ujian dari pengawas.</p>
+        </div>
+        <div class="card-body">
+          <div style="width:100%; max-width:360px; margin:0 auto">
+            <div id="dataSiswa" class="bg-slate-soft" style="border-radius:14px; padding:14px 18px; font-size:14px"></div>
+            <div class="field" style="margin-top:16px">
+              <label for="tokenUjian">Token Ujian</label>
+              <div class="input-icon-wrap">
+                <i class="fa-solid fa-shield-halved"></i>
+                <input id="tokenUjian" class="input" type="text" placeholder="Contoh: TKN-XXXX" autocomplete="off" style="text-align:center; text-transform:uppercase; font-size:18px; letter-spacing:2px">
+              </div>
+            </div>
+            <button id="btnMulai" class="btn btn-block" style="padding:14px">Mulai Ujian <i class="fa-solid fa-rocket"></i></button>
+            <button id="btnBatalLogin" class="btn btn-ghost btn-block" style="margin-top:8px"><i class="fa-solid fa-arrow-left"></i> Ganti Akun</button>
+            <p id="mulaiMsg" class="muted" style="margin-top:12px; font-size:13px"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LAYAR UJIAN ===== -->
+    <section id="screen-exam" class="hidden">
+      <header class="exam-header">
+        <div class="exam-header-inner">
+          <div class="logo"><span class="mark">U</span>
+            <div>
+              <div class="card-title" id="examTitle" style="color:#fff; font-size:14px"></div>
+              <div class="participant" id="examInfo"></div>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <div class="timer-pill" id="timer"><i class="fa-solid fa-clock"></i> <span id="timeText">00:00</span></div>
+          <button id="btnSubmit" class="btn btn-success" style="padding:10px 16px"><i class="fa-solid fa-paper-plane"></i> Selesai</button>
+        </div>
+      </header>
+
+      <div class="exam-body">
+        <main class="exam-main">
+          <div class="card">
+            <div id="soalBox"></div>
+            <div id="opsiBox" class="card-content" style="padding-top:8px"></div>
+            <div class="card-foot">
+              <button id="btnPrev" class="btn btn-outline"><i class="fa-solid fa-chevron-left"></i> Sebelumnya</button>
+              <button id="btnRagu" class="btn btn-ghost"><i class="fa-regular fa-flag"></i> Ragu-ragu</button>
+              <div class="spacer"></div>
+              <button id="btnNext" class="btn"><span id="nextLabel">Berikutnya</span> <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </main>
+
+        <aside class="aside-card">
+          <div class="aside-title">
+            <h3><i class="fa-solid fa-list-ol" style="color:var(--brand-600)"></i> Navigasi Soal</h3>
+            <span class="count-pill" id="doneCount">0 terjawab</span>
+          </div>
+          <div class="nav-grid" id="navGrid"></div>
+          <div class="legend mt">
+            <div class="legend-item"><span class="legend-swatch done"></span> Sudah dijawab</div>
+            <div class="legend-item"><span class="legend-swatch ragu"></span> Ragu-ragu</div>
+            <div class="legend-item"><span class="legend-swatch empty"></span> Belum dijawab</div>
+          </div>
+          <div class="progress-bar mt"><div class="progress-fill" id="progressFill"></div></div>
+          <div class="flex mt">
+            <span class="badge badge-blue" id="progressCount">0 / 0</span>
+            <div class="spacer"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ===== LAYAR HASIL ===== -->
+    <section id="screen-result" class="hidden">
+      <div class="card result-card">
+        <div class="result-hero">
+          <div class="hero-mark">✓</div>
+          <h2><i class="fa-solid fa-circle-check"></i> Ujian Selesai</h2>
+          <h1 id="resultName">Peserta</h1>
+          <div class="score-box">
+            <span class="lbl">Nilai Akhir</span>
+            <span class="num" id="resultNilai">0</span>
+            <span class="sub">dari 100</span>
+          </div>
+        </div>
+        <div class="result-stats">
+          <div class="stat correct"><div class="num" id="rBenar">0</div><div class="lbl">Benar</div></div>
+          <div class="stat wrong"><div class="num" id="rSalah">0</div><div class="lbl">Salah</div></div>
+          <div class="stat blank"><div class="num" id="rKosong">0</div><div class="lbl">Kosong</div></div>
+          <div class="stat"><div class="num" id="rTotal">0</div><div class="lbl">Total Soal</div></div>
+        </div>
+        <div class="result-actions">
+          <button id="btnLagi" class="btn btn-outline"><i class="fa-solid fa-rotate-left"></i> Kembali ke Awal</button>
+          <button class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Cetak Hasil</button>
+        </div>
+      </div>
+    </section>
+    <!-- ===== MODAL KONFIRMASI SUBMIT ===== -->
+    <div class="modal-overlay" id="submitModal">
+      <div class="modal" style="max-width:440px">
+        <div class="center">
+          <div class="hero-icon" style="background:#fef3c7; color:#92400e; box-shadow:none"><i class="fa-regular fa-circle-question"></i></div>
+          <h3 class="card-title" style="font-size:20px; margin-top:10px">Selesaikan Ujian?</h3>
+          <p class="card-sub">Periksa kembali jawaban Anda sebelum mengumpulkan.</p>
+        </div>
+        <div class="bg-slate-soft" style="border-radius:14px; padding:14px 18px; font-size:14px">
+          <div class="flex" style="justify-content:space-between"><span class="muted">Jumlah soal</span><b id="cTotal">0</b></div>
+          <div class="flex" style="justify-content:space-between"><span class="muted">Terjawab</span><b style="color:var(--brand-600)" id="cDone">0</b></div>
+          <div class="flex" style="justify-content:space-between"><span class="muted">Ragu-ragu</span><b style="color:var(--amber-600)" id="cRagu">0</b></div>
+        </div>
+        <div class="flex" style="margin-top:20px">
+          <button class="btn btn-ghost" style="flex:1" id="cBatal"><i class="fa-solid fa-arrow-left"></i> Periksa Lagi</button>
+          <button class="btn btn-success" style="flex:1" id="cKirim"><i class="fa-solid fa-paper-plane"></i> Kumpulkan</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/soal-render.js"></script>
+<script>
+(function () {
+  "use strict";
+  AppAPI.initMock();
+
+  var state = {
+    siswa: null,
+    soal: [],
+    jawaban: {},          // soalId -> { pilihan, ragu }
+    urutan: [],           // urutan soal
+    idx: 0,
+    waktuSisa: 0,
+    timerInt: null,
+    terkirim: {}          // soalId -> true (sudah di-lock/kirim)
+  };
+
+  var el = {
+    screenLogin: document.getElementById("screen-login"),
+    screenConfirm: document.getElementById("screen-confirm"),
+    screenExam: document.getElementById("screen-exam"),
+    screenResult: document.getElementById("screen-result"),
+    token: document.getElementById("loginKode"),
+    username: document.getElementById("loginUsername"),
+    password: document.getElementById("loginPassword"),
+    btnLogin: document.getElementById("btnLogin"),
+    loginMsg: document.getElementById("loginMsg"),
+    dataSiswa: document.getElementById("dataSiswa"),
+    tokenUjian: document.getElementById("tokenUjian"),
+    btnMulai: document.getElementById("btnMulai"),
+    btnBatalLogin: document.getElementById("btnBatalLogin"),
+    mulaiMsg: document.getElementById("mulaiMsg"),
+    userbox: document.getElementById("userbox"),
+    examTitle: document.getElementById("examTitle"),
+    examInfo: document.getElementById("examInfo"),
+    timer: document.getElementById("timer"),
+    timeText: document.getElementById("timeText"),
+    soalBox: document.getElementById("soalBox"),
+    opsiBox: document.getElementById("opsiBox"),
+    btnPrev: document.getElementById("btnPrev"),
+    btnRagu: document.getElementById("btnRagu"),
+    btnNext: document.getElementById("btnNext"),
+    nextLabel: document.getElementById("nextLabel"),
+    progressCount: document.getElementById("progressCount"),
+    progressFill: document.getElementById("progressFill"),
+    doneCount: document.getElementById("doneCount"),
+    navGrid: document.getElementById("navGrid"),
+    btnSubmit: document.getElementById("btnSubmit"),
+    resultName: document.getElementById("resultName"),
+    resultNilai: document.getElementById("resultNilai"),
+    rBenar: document.getElementById("rBenar"),
+    rSalah: document.getElementById("rSalah"),
+    rKosong: document.getElementById("rKosong"),
+    rTotal: document.getElementById("rTotal"),
+    btnLagi: document.getElementById("btnLagi")
+  };
+
+  /* ===== LOGIN → KONFIRMASI DATA + TOKEN ===== */
+  el.btnLogin.addEventListener("click", doLogin);
+  el.username.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+  el.password.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+  el.token.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+  el.tokenUjian.addEventListener("keydown", function (e) { if (e.key === "Enter") doMulai(); });
+  el.btnMulai.addEventListener("click", doMulai);
+  el.btnBatalLogin.addEventListener("click", function () {
+    el.screenConfirm.classList.add("hidden");
+    el.screenLogin.classList.remove("hidden");
+    el.tokenUjian.value = "";
+    el.mulaiMsg.textContent = "";
+  });
+
+  function doLogin() {
+    var username = el.username.value.trim();
+    var password = el.password.value;
+    var kode = el.token.value.trim();
+    if (!username || !password) { el.loginMsg.textContent = "Isi username dan password."; return; }
+    if (!kode) { el.loginMsg.textContent = "Masukkan kode ujian."; return; }
+    el.btnLogin.disabled = true;
+    el.loginMsg.textContent = "Memvalidasi akun...";
+    AppAPI.call("login-siswa", { username: username, password: password, kode: kode }).then(function (res) {
+      el.btnLogin.disabled = false;
+      if (!res.ok) { el.loginMsg.textContent = res.error; return; }
+      state.siswa = res.data.siswa;
+      state.ujian = res.data.ujian || {};
+      state.kodeLogin = kode;
+      el.dataSiswa.innerHTML =
+        '<div class="flex" style="justify-content:space-between"><span class="muted">Nama</span><b>' + (state.siswa.nama || "-") + '</b></div>' +
+        '<div class="flex" style="justify-content:space-between"><span class="muted">NIS / Nomor</span><b>' + (state.siswa.nis || "-") + '</b></div>' +
+        '<div class="flex" style="justify-content:space-between"><span class="muted">Kelas</span><b>' + (state.siswa.kelas || "-") + '</b></div>' +
+        '<div class="flex" style="justify-content:space-between"><span class="muted">Ujian</span><b>' + (state.ujian.nama || kode) + '</b></div>';
+      el.screenLogin.classList.add("hidden");
+      el.screenConfirm.classList.remove("hidden");
+      el.mulaiMsg.textContent = "";
+      el.tokenUjian.focus();
+    }).catch(function (err) {
+      el.btnLogin.disabled = false;
+      el.loginMsg.textContent = err.message;
+    });
+  }
+
+  /* ===== MULAI UJIAN (validasi token) ===== */
+  function doMulai() {
+    var token = el.tokenUjian.value.trim();
+    if (!token) { el.mulaiMsg.textContent = "Masukkan token ujian dari pengawas."; return; }
+    el.btnMulai.disabled = true;
+    el.mulaiMsg.textContent = "Memvalidasi token...";
+    AppAPI.call("mulai-ujian", { username: state.siswa.username, kode: state.kodeLogin, token: token }).then(function (res) {
+      el.btnMulai.disabled = false;
+      if (!res.ok) { el.mulaiMsg.textContent = res.error; return; }
+      state.siswa = res.data.siswa;
+      state.ujian = res.data.ujian || state.ujian;
+      AppSession.save({ role: "siswa", sessionId: res.data.sessionId });
+      AppSession.simpanIdentitasSiswa(state.siswa);
+      mulaiUjian();
+    }).catch(function (err) {
+      el.btnMulai.disabled = false;
+      el.mulaiMsg.textContent = err.message;
+    });
+  }
+
+  /* ===== MULAI UJIAN ===== */
+  function mulaiUjian() {
+    // Kode ujian yang dipilih saat login menjadi penentu ujian.
+    AppAPI.call("get-ujian").then(function (res) {
+      var ujian = (res.data || []).find(function (u) { return u.kode === state.kodeLogin; }) || state.ujian;
+      return AppAPI.call("bank-soal").then(function (r2) {
+        var bank = r2.data || [];
+        var ids = (ujian && ujian.soalIds) || bank.map(function (b) { return b.id; });
+        state.soal = bank.filter(function (b) { return ids.indexOf(b.id) >= 0; });
+        if (ujian) state.urutan = ujian.soalIds || state.soal.map(function (s) { return s.id; });
+        else state.urutan = state.soal.map(function (s) { return s.id; });
+        // urutan yang terdaftar -> mapping
+        var byId = {};
+        state.soal.forEach(function (s) { byId[s.id] = s; });
+        state.soal = state.urutan.map(function (id) { return byId[id]; }).filter(Boolean);
+
+        if (!state.soal.length) { alert("Belum ada soal untuk ujian ini."); return; }
+
+        var nama = state.siswa.nama || state.siswa.nis || "Siswa";
+        el.examTitle.textContent = (ujian && ujian.nama) || "Ujian Matematika";
+        el.examInfo.textContent = nama + " · " + (state.siswa.kelas || "");
+        el.userbox.innerHTML = '<i class="fa-solid fa-user"></i> ' + nama;
+        state.waktuSisa = (ujian && ujian.durasiMenit ? ujian.durasiMenit : AppConfig.EXAM.defaultDurasiMenit) * 60;
+        el.screenConfirm.classList.add("hidden");
+        el.screenExam.classList.remove("hidden");
+        tampilkanSoal();
+        startTimer();
+      });
+    }).catch(function (err) { el.loginMsg.textContent = err.message; });
+  }
+
+  /* ===== RENDER SOAL ===== */
+  function soalSaatIni() { return state.soal[state.idx]; }
+
+  function tampilkanSoal() {
+    var s = soalSaatIni();
+    el.soalBox.innerHTML = "";
+    var head = document.createElement("div");
+    head.className = "card-head";
+    var headFlex = document.createElement("div");
+    headFlex.className = "flex";
+    var no = document.createElement("span");
+    no.className = "badge badge-blue";
+    no.textContent = "Soal No. " + (state.idx + 1);
+    headFlex.appendChild(no);
+    if (s.topik) {
+      var tp = document.createElement("span");
+      tp.className = "badge badge-slate";
+      tp.textContent = s.topik;
+      headFlex.appendChild(tp);
+    }
+    if (s.mapel) {
+      var mp = document.createElement("span");
+      mp.className = "badge badge-slate";
+      mp.textContent = s.mapel;
+      headFlex.appendChild(mp);
+    }
+    head.appendChild(headFlex);
+    head.appendChild(progressMini(s));
+    el.soalBox.appendChild(head);
+
+    var body = document.createElement("div");
+    body.className = "card-content";
+    body.appendChild(RenderSoal.blocks(s.blocks || [{ type: "text", value: s.pertanyaan || "" }]));
+    el.soalBox.appendChild(body);
+
+    el.opsiBox.innerHTML = "";
+    var pilihan = state.jawaban[s.id] && state.jawaban[s.id].pilihan;
+    (s.opsi || []).forEach(function (opsi, i) {
+      var label = AppConfig.EXAM.opsiLabel[i] || String(i + 1);
+      var row = document.createElement("button");
+      row.type = "button";
+      row.className = "option-row" + (pilihan === label ? " selected" : "");
+      var L = document.createElement("span");
+      L.className = "option-letter";
+      L.textContent = label;
+      var T = document.createElement("span");
+      T.style.flex = "1";
+      T.appendChild(RenderSoal.blocks([{ type: /^\$/.test(opsi) ? "latex" : "text", value: opsi.replace(/^\$|\$$/g, "") }].map(function (b) {
+        if (/^\$/.test(opsi)) return b;
+        return { type: "text", value: opsi };
+      })));
+      row.appendChild(L);
+      row.appendChild(T);
+      row.addEventListener("click", function () { pilihJawaban(label); });
+      el.opsiBox.appendChild(row);
+    });
+
+    el.btnPrev.disabled = state.idx === 0;
+    el.nextLabel.textContent = state.idx === state.soal.length - 1 ? "Selesai" : "Berikutnya";
+    renderNav();
+  }
+
+  function progressMini(s) {
+    var j = state.jawaban[s.id];
+    var el2 = document.createElement("span");
+    el2.className = "badge " + (j && j.ragu ? "badge-amber" : (j && j.pilihan ? "badge-green" : "badge-slate"));
+    el2.innerHTML = (j && j.ragu ? '<i class="fa-regular fa-flag"></i> ' : (j && j.pilihan ? '<i class="fa-solid fa-circle-check"></i> ' : '<i class="fa-regular fa-circle"></i> ')) +
+      (j && j.ragu ? "Ragu" : (j && j.pilihan ? "Terjawab" : "Belum"));
+    return el2;
+  }
+
+  function pilihJawaban(label) {
+    var s = soalSaatIni();
+    var old = state.jawaban[s.id];
+    state.jawaban[s.id] = { pilihan: label, ragu: !!(old && old.ragu) };
+    // kirim jawaban ke server (1x per lock — disini setiap pilihan di-lock)
+    if (!state.terkirim[s.id]) {
+      state.terkirim[s.id] = true;
+      AppAPI.kirimJawaban({
+        username: state.siswa.username,
+        nis: state.siswa.nis,
+        nama: state.siswa.nama,
+        soalId: s.id,
+        jawaban: label,
+        ts: new Date().toISOString()
+      }).then(function () {
+        toast("Jawaban tersimpan ✓");
+      }).catch(function () {
+        toast("Menunggu koneksi — jawaban antre");
+      });
+    }
+    tampilkanSoal();
+  }
+
+  function renderNav() {
+    var n = state.urutan.length;
+    var done = 0;
+    el.navGrid.innerHTML = "";
+    state.urutan.forEach(function (id, i) {
+      var j = state.jawaban[id];
+      var b = document.createElement("button");
+      b.className = "nav-q" +
+        (j && j.ragu ? " ragu" : (j && j.pilihan ? " done" : "")) +
+        (i === state.idx ? " current" : "");
+      if (j && j.pilihan && !j.ragu) b.textContent = j.pilihan;
+      else if (j && j.ragu) b.innerHTML = '<i class="fa-solid fa-flag" style="font-size:11px"></i>';
+      else b.textContent = (i + 1);
+      b.addEventListener("click", function () { state.idx = i; tampilkanSoal(); });
+      el.navGrid.appendChild(b);
+      if (j && j.pilihan) done++;
+    });
+    el.progressCount.textContent = (state.idx + 1) + " / " + n;
+    el.doneCount.textContent = done + " terjawab";
+    if (el.progressFill) {
+      el.progressFill.style.width = Math.round((done / n) * 100) + "%";
+    }
+  }
+
+  el.btnPrev.addEventListener("click", function () { if (state.idx > 0) { state.idx--; tampilkanSoal(); } });
+  el.btnNext.addEventListener("click", function () {
+    if (state.idx < state.soal.length - 1) { state.idx++; tampilkanSoal(); }
+    else konfirmasiSubmit();
+  });
+  el.btnRagu.addEventListener("click", function () {
+    var s = soalSaatIni();
+    var old = state.jawaban[s.id] || {};
+    state.jawaban[s.id] = { pilihan: old.pilihan, ragu: !old.ragu };
+    tampilkanSoal();
+  });
+  el.btnSubmit.addEventListener("click", konfirmasiSubmit);
+
+  /* ===== TIMER ===== */
+  function startTimer() {
+    clearInterval(state.timerInt);
+    state.timerInt = setInterval(function () {
+      state.waktuSisa--;
+      if (state.waktuSisa <= 0) {
+        clearInterval(state.timerInt);
+        submitUjian(true);
+        return;
+      }
+      el.timeText.textContent = fmt(state.waktuSisa);
+      el.timer.classList.toggle("danger", state.waktuSisa < 300);
+    }, 1000);
+  }
+  function fmt(sec) {
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  }
+
+  /* ===== SUBMIT ===== */
+  var submitModal = document.getElementById("submitModal");
+  document.getElementById("cBatal").addEventListener("click", function () { submitModal.classList.remove("open"); });
+  document.getElementById("cKirim").addEventListener("click", function () { submitModal.classList.remove("open"); submitUjian(false); });
+
+  function konfirmasiSubmit() {
+    var done = state.urutan.filter(function (id) { return state.jawaban[id] && state.jawaban[id].pilihan; }).length;
+    var ragu = state.urutan.filter(function (id) { return state.jawaban[id] && state.jawaban[id].ragu; }).length;
+    document.getElementById("cTotal").textContent = state.urutan.length;
+    document.getElementById("cDone").textContent = done;
+    document.getElementById("cRagu").textContent = ragu;
+    submitModal.classList.add("open");
+  }
+
+  function submitUjian(timeout) {
+    if (timeout) toast("⏰ Waktu habis — jawaban dikumpulkan otomatis.");
+    clearInterval(state.timerInt);
+    var payload = {
+      username: state.siswa.username,
+      nis: state.siswa.nis,
+      nama: state.siswa.nama,
+      jawaban: state.urutan.map(function (id) {
+        var j = state.jawaban[id];
+        return { soalId: id, jawaban: j && j.pilihan ? j.pilihan : null };
+      })
+    };
+    AppAPI.call("submit-ujian", payload, { penting: true }).then(function (res) {
+      tampilkanHasil(res.data);
+    }).catch(function (err) {
+      alert("Gagal mengumpulkan: " + err.message + " — coba lagi.");
+      startTimer();
+    });
+  }
+
+  function tampilkanHasil(data) {
+    var total = state.urutan.length;
+    var benar = data.benar || 0;
+    var salah = data.total - benar - (data.kosong || 0);
+    var kosong = (data.kosong != null ? data.kosong : (total - benar - Math.max(0, data.total - benar)));
+    kosong = Math.max(0, total - benar - Math.max(0, data.total - benar));
+    el.resultNilai.textContent = data.nilai != null ? data.nilai : Math.round((benar / total) * 100);
+    el.rBenar.textContent = benar;
+    el.rSalah.textContent = salah;
+    el.rKosong.textContent = kosong;
+    el.rTotal.textContent = total;
+    el.resultName.textContent = (state.siswa.nama || state.siswa.nis) || "Peserta";
+    el.screenExam.classList.add("hidden");
+    el.screenResult.classList.remove("hidden");
+    if (window.confetti) {
+      window.confetti({ particleCount: 120, spread: 75, origin: { y: 0.55 } });
+      setTimeout(function () { window.confetti({ particleCount: 60, spread: 100, origin: { y: 0.5 } }); }, 350);
+    }
+    AppSession.hapusIdentitasSiswa();
+  }
+
+  el.btnLagi.addEventListener("click", function () {
+    AppSession.clear();
+    location.reload();
+  });
+
+  /* ===== TOAST ===== */
+  var toastEl = null;
+  function toast(msg) {
+    if (!toastEl) {
+      toastEl = document.createElement("div");
+      toastEl.className = "toast";
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function () { toastEl.classList.remove("show"); }, 1800);
+  }
+})();
+</script>
+</body>
+</html>

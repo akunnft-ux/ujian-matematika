@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Admin — Ujian Matematika</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="logo"><span class="mark">A</span> Dashboard Admin</div>
+    <div class="userbox" id="userbox" style="display:none"><span id="userInfo"></span><button id="btnLogout" class="btn btn-ghost btn-sm" style="color:#fff; background:rgba(255,255,255,.12)"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button></div>
+  </header>
+
+  <main class="container container-narrow" id="loginWrap">
+    <div class="card card-login" style="margin-top:24px">
+      <div class="hero">
+        <div class="hero-mark">A</div>
+        <div class="hero-icon"><i class="fa-solid fa-user-tie"></i></div>
+        <h1 class="hero-title">Login Admin</h1>
+        <p class="hero-sub">Kelola siswa, akun guru, dan monitoring ujian.</p>
+      </div>
+      <div class="card-body">
+        <div style="width:100%; max-width:320px; margin:0 auto">
+          <div class="field"><label>Username</label><input id="aUser" class="input" autocomplete="username" placeholder="username"></div>
+          <div class="field"><label>Password</label><input id="aPass" class="input" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+          <button id="btnAdminLogin" class="btn btn-block" style="padding:13px">Masuk <i class="fa-solid fa-right-to-bracket"></i></button>
+          <p id="adminMsg" class="muted" style="margin-top:10px; font-size:13px"></p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <main class="container hidden" id="dashWrap">
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="monitor"><i class="fa-solid fa-radar"></i> Monitor</button>
+      <button class="tab" data-tab="siswa"><i class="fa-solid fa-graduation-cap"></i> Siswa</button>
+      <button class="tab" data-tab="ujian"><i class="fa-solid fa-screwdriver-wrench"></i> Ujian</button>
+      <button class="tab" data-tab="user"><i class="fa-solid fa-users-gear"></i> Guru</button>
+      <button class="tab" data-tab="hasil"><i class="fa-solid fa-chart-column"></i> Hasil</button>
+    </nav>
+
+    <section id="tab-monitor" class="tab-panel">
+      <div class="section-head"><h2>Monitoring Real-time</h2><button id="btnRefreshMonitor" class="btn btn-ghost">⟳ Refresh</button></div>
+      <div id="monitorBox"></div>
+    </section>
+
+    <section id="tab-siswa" class="tab-panel hidden">
+      <div class="section-head"><h2>Data Siswa &amp; Status Login</h2></div>
+      <div id="siswaBox"></div>
+    </section>
+
+    <section id="tab-ujian" class="tab-panel hidden">
+      <div class="section-head"><h2>Aktifkan Ujian &amp; Token</h2></div>
+      <div id="ujianBox"></div>
+    </section>
+
+    <section id="tab-user" class="tab-panel hidden">
+      <div class="card">
+        <h3 class="card-title">Tambah Akun Guru</h3>
+        <p class="card-sub">Guru hanya dapat login &amp; mengelola soal setelah akun dibuat di sini.</p>
+        <div class="grid grid-2">
+          <div class="field"><label>Username</label><input id="nuUser" class="input"></div>
+          <div class="field"><label>Password</label><input id="nuPass" class="input" type="password"></div>
+        </div>
+        <button id="btnTambahUser" class="btn">Tambah Guru</button>
+      </div>
+      <div class="card">
+        <h3 class="card-title">Daftar Guru</h3>
+        <div id="userList" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <section id="tab-hasil" class="tab-panel hidden">
+      <div class="section-head"><h2>Hasil Ujian</h2></div>
+      <div id="hasilBox" class="table-wrap"></div>
+    </section>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script>
+(function () {
+  "use strict";
+  AppAPI.initMock();
+
+  var wrapLogin = document.getElementById("loginWrap");
+  var wrapDash = document.getElementById("dashWrap");
+  var userbox = document.getElementById("userbox");
+
+  function toast(msg) {
+    var t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add("show"); });
+    setTimeout(function () { t.classList.remove("show"); setTimeout(function () { t.remove(); }, 300); }, 2000);
+  }
+
+  function masukDashboard(data) {
+    AppSession.save({ role: data.role, username: data.username, sessionId: data.sessionId });
+    document.getElementById("userInfo").innerHTML = '<i class="fa-solid fa-user-shield"></i> ' + data.username;
+    userbox.style.display = "";
+    wrapLogin.classList.add("hidden");
+    wrapDash.classList.remove("hidden");
+    muatMonitor();
+  }
+
+  document.getElementById("btnAdminLogin").addEventListener("click", loginAdmin);
+  document.getElementById("aPass").addEventListener("keydown", function (e) { if (e.key === "Enter") loginAdmin(); });
+
+  function loginAdmin() {
+    var u = document.getElementById("aUser").value.trim();
+    var p = document.getElementById("aPass").value;
+    if (!u || !p) { document.getElementById("adminMsg").textContent = "Isi username & password."; return; }
+    document.getElementById("btnAdminLogin").disabled = true;
+    document.getElementById("adminMsg").textContent = "Memeriksa...";
+    AppAPI.call("login-admin", { username: u, password: p }).then(function (res) {
+      document.getElementById("btnAdminLogin").disabled = false;
+      if (!res.ok) { document.getElementById("adminMsg").textContent = res.error; return; }
+      if (res.data.role !== "admin") {
+        document.getElementById("adminMsg").textContent = "Halaman ini khusus admin.";
+        return;
+      }
+      masukDashboard(res.data);
+    }).catch(function (err) {
+      document.getElementById("btnAdminLogin").disabled = false;
+      document.getElementById("adminMsg").textContent = err.message;
+    });
+  }
+
+  document.getElementById("btnLogout").addEventListener("click", function () { AppSession.clear(); location.reload(); });
+
+  document.getElementById("tabs").addEventListener("click", function (e) {
+    var btn = e.target.closest(".tab"); if (!btn) return;
+    document.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("active"); });
+    btn.classList.add("active");
+    document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.add("hidden"); });
+    document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+    if (btn.dataset.tab === "monitor") muatMonitor();
+    if (btn.dataset.tab === "siswa") muatSiswa();
+    if (btn.dataset.tab === "ujian") muatUjianAdmin();
+    if (btn.dataset.tab === "user") muatUsers();
+    if (btn.dataset.tab === "hasil") muatHasil();
+  });
+
+  /* ===== MONITOR ===== */
+  document.getElementById("btnRefreshMonitor").addEventListener("click", muatMonitor);
+  function muatMonitor() {
+    Promise.all([AppAPI.call("get-progress"), AppAPI.call("get-ujian")]).then(function (rs) {
+      var sesi = rs[0].data || [];
+      var ujian = rs[1].data || [];
+      var box = document.getElementById("monitorBox");
+      if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa login.</div>'; return; }
+      box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
+        sesi.map(function (s) {
+          var badge = s.status === "ACTIVE" ? "badge-green" : s.status === "SELESAI" ? "badge-blue" : "badge-slate";
+          var label = s.status === "SELESAI" ? "Selesai" : s.status === "ACTIVE" ? "Sedang ujian" : "Aktif";
+          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + badge + "'>" + label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
+    });
+  }
+
+  /* ===== SISWA / RESET ===== */
+  function muatSiswa() {
+    Promise.all([AppAPI.call("get-progress"), AppAPI.call("get-hasil")]).then(function (rs) {
+      var sesi = rs[0].data || [];
+      var hasil = rs[1].data || [];
+      var box = document.getElementById("siswaBox");
+      if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
+      box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Aksi</th></tr></thead><tbody>" +
+        sesi.map(function (s) {
+          var badge = s.status === "ACTIVE" ? "badge-green" : s.status === "SELESAI" ? "badge-blue" : "badge-slate";
+          var btn = s.status === "INACTIVE" ? "" :
+            "<button class='btn btn-sm btn-outline' onclick='window.__resetLogin(\"" + s.username + "\")'>Reset Login</button>";
+          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + badge + "'>" + s.status + "</span></td><td>" + btn + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
+    });
+  }
+
+  window.__resetLogin = function (username) {
+    AppAPI.call("reset-login", { username: username }).then(function () {
+      toast("Login direset — siswa bisa masuk lagi");
+      muatSiswa();
+    }).catch(function (err) { toast(err.message); });
+  };
+
+  /* ===== UJIAN (aktifkan + token) ===== */
+  function muatUjianAdmin() {
+    AppAPI.call("get-ujian").then(function (res) {
+       var ujian = res.data || [];
+       var box = document.getElementById("ujianBox");
+       if (!ujian.length) { box.innerHTML = '<div class="card muted center">Belum ada ujian dibuat guru.</div>'; return; }
+       box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Status</th><th>Token</th><th>Aksi</th></tr></thead><tbody>" +
+         ujian.map(function (u) {
+           var badge = u.status === "aktif" ? "badge-green" : "badge-slate";
+           var label = u.status === "aktif" ? "Aktif" : "Draft";
+           var btn;
+           if (u.status === "aktif") {
+             btn = "<button class='btn btn-sm btn-success' onclick='window.__selesaiUjian(\"" + u.id + "\")'>Selesai</button>";
+           } else {
+             btn = "<button class='btn btn-sm' onclick='window.__aktifkanUjian(\"" + u.id + "\")'>Aktifkan &amp; Generate Token</button>";
+           }
+           var token = u.status === "aktif" && u.token
+             ? "<code style='background:#f1f5f9;padding:2px 8px;border-radius:6px;font-weight:700;letter-spacing:1px'>" + u.token + "</code>"
+             : "<span class='muted'>—</span>";
+           return "<tr><td>" + u.nama + "</td><td><code>" + u.kode + "</code></td><td>" + u.kelas + "</td><td><span class='badge " + badge + "'>" + label + "</span></td><td>" + token + "</td><td>" + btn + "</td></tr>";
+         }).join("") + "</tbody></table></div>";
+    });
+  }
+
+  window.__aktifkanUjian = function (id) {
+    AppAPI.call("aktifkan-ujian", { id: id }).then(function (res) {
+      if (!res.ok) { toast(res.error); return; }
+      toast("Ujian aktif — token: " + res.data.token);
+      muatUjianAdmin();
+    }).catch(function (err) { toast(err.message); });
+  };
+
+  window.__selesaiUjian = function (id) {
+    AppAPI.call("selesai-ujian", { id: id }).then(function (res) {
+      if (!res.ok) { toast(res.error); return; }
+      toast("Ujian diselesaikan — siswa tidak bisa mulai lagi");
+      muatUjianAdmin();
+    }).catch(function (err) { toast(err.message); });
+  };
+
+  /* ===== USER GURU ===== */
+  document.getElementById("btnTambahUser").addEventListener("click", function () {
+    var u = document.getElementById("nuUser").value.trim();
+    var p = document.getElementById("nuPass").value;
+    if (!u || !p) { toast("Isi username & password"); return; }
+    AppAPI.call("tambah-user", { user: { username: u, passHash: p, role: "guru", aktif: true } }).then(function () {
+      toast("Akun guru " + u + " dibuat");
+      document.getElementById("nuUser").value = ""; document.getElementById("nuPass").value = "";
+      muatUsers();
+    }).catch(function (err) { toast(err.message); });
+  });
+
+  function muatUsers() {
+    AppAPI.call("get-users").then(function (res) {
+      var list = (res.data || []).filter(function (x) { return x.role === "guru"; });
+      var box = document.getElementById("userList");
+      if (!list.length) { box.innerHTML = '<div class="muted">Belum ada akun guru.</div>'; return; }
+      box.innerHTML = "<table class='data'><thead><tr><th>Username</th><th>Role</th><th>Status</th></tr></thead><tbody>" +
+        list.map(function (u) {
+          return "<tr><td>" + u.username + "</td><td>" + u.role + "</td><td><span class='badge " + (u.aktif ? "badge-green" : "badge-red") + "'>" + (u.aktif ? "aktif" : "nonaktif") + "</span></td></tr>";
+        }).join("") + "</tbody></table>";
+    });
+  }
+
+  /* ===== HASIL ===== */
+  function muatHasil() {
+    AppAPI.call("get-hasil").then(function (res) {
+      var list = res.data || [];
+      var box = document.getElementById("hasilBox");
+      if (!list.length) { box.innerHTML = '<div class="card muted center">Belum ada hasil.</div>'; return; }
+      box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Benar</th><th>Total</th><th>Nilai</th><th>Waktu</th></tr></thead><tbody>" +
+        list.map(function (h) {
+          return "<tr><td>" + h.nama + "</td><td>" + h.nis + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
+        }).join("") + "</tbody></table>";
+    });
+  }
+
+  /* ===== AUTO-LOGIN jika sesi admin ada ===== */
+  (function () {
+    var s = AppSession.data();
+    if (s && s.role === "admin") {
+      masukDashboard(s);
+    }
+  })();
+})();
+</script>
+</body>
+</html>
