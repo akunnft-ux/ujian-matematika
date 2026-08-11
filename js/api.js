@@ -77,7 +77,7 @@
         opsi: ["$5$", "$8$", "$9$", "$10$", "$14$"],
         kunci: "C",
         pembahasan: "f'(x)=6x^2-18x+12, titik stasioner x=1 dan x=2; f(2)=9 minimum lokal.",
-        status: "draft",
+        status: "aktif",
         uploader: "guru"
       },
       {
@@ -94,7 +94,7 @@
         opsi: ["$\\frac{1}{6}$", "$\\frac{1}{4}$", "$\\frac{1}{3}$", "$\\frac{1}{2}$", "$1$"],
         kunci: "C",
         pembahasan: "Substitusi u = sin(x).",
-        status: "draft",
+        status: "aktif",
         uploader: "guru"
       }
     ];
@@ -216,6 +216,12 @@
     var db = loadMock();
     var ujian = (db.ujian || []).find(function (u) { return u.id === id; });
     if (!ujian) return { ok: false, error: "Ujian tidak ditemukan." };
+    var bank = db.bankSoal || [];
+    var adaAktif = (ujian.soalIds || []).some(function (sid) {
+      var s = bank.find(function (b) { return b.id === sid; });
+      return s && s.status === "aktif";
+    });
+    if (!adaAktif) return { ok: false, error: "Tidak ada soal aktif pada ujian ini. Aktifkan dulu soal di bank soal (guru)." };
     if (!ujian.token) ujian.token = "TKN-" + Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
     ujian.status = "aktif";
     saveMock(db);

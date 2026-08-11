@@ -18,13 +18,13 @@ values
    '["$5$","$8$","$9$","$10$","$14$"]'::jsonb,
    'C',
    'f''(x)=6x^2-18x+12, titik stasioner x=1 dan x=2; f(2)=9 minimum lokal.',
-   'draft', 'guru'),
+   'aktif', 'guru'),
   ('S-002', 'Matematika', 'XII IPA', 'Integral', 'M-2026-001',
    '[{"type":"text","value":"Nilai dari "},{"type":"latex","value":"\\int_{0}^{\\pi/2} \\sin^2(x)\\cos(x)\\,dx"},{"type":"text","value":" adalah ..."}]'::jsonb,
    '["$\\frac{1}{6}$","$\\frac{1}{4}$","$\\frac{1}{3}$","$\\frac{1}{2}$","$1$"]'::jsonb,
    'C',
    'Substitusi u = sin(x).',
-   'draft', 'guru')
+   'aktif', 'guru')
 on conflict (id) do nothing;
 
 -- Ujian demo EXM-2026-001 (status aktif + token TKN-DEMO)

@@ -316,15 +316,16 @@
       return AppAPI.call("bank-soal").then(function (r2) {
         var bank = r2.data || [];
         var ids = (ujian && ujian.soalIds) || bank.map(function (b) { return b.id; });
-        state.soal = bank.filter(function (b) { return ids.indexOf(b.id) >= 0; });
-        if (ujian) state.urutan = ujian.soalIds || state.soal.map(function (s) { return s.id; });
-        else state.urutan = state.soal.map(function (s) { return s.id; });
-        // urutan yang terdaftar -> mapping
+        // hanya soal berstatus aktif yang keluar ke siswa
+        state.soal = bank.filter(function (b) { return b.status === "aktif" && ids.indexOf(b.id) >= 0; });
+        // urutan yang terdaftar -> mapping (buang id soal nonaktif/terhapus)
         var byId = {};
         state.soal.forEach(function (s) { byId[s.id] = s; });
-        state.soal = state.urutan.map(function (id) { return byId[id]; }).filter(Boolean);
+        state.urutan = ((ujian && ujian.soalIds) || state.soal.map(function (s) { return s.id; }))
+          .filter(function (id) { return byId[id]; });
+        state.soal = state.urutan.map(function (id) { return byId[id]; });
 
-        if (!state.soal.length) { alert("Belum ada soal untuk ujian ini."); return; }
+        if (!state.soal.length) { alert("Belum ada soal aktif untuk ujian ini."); return; }
 
         var nama = state.siswa.nama || state.siswa.nis || "Siswa";
         el.examTitle.textContent = (ujian && ujian.nama) || "Ujian Matematika";

@@ -284,7 +284,8 @@ begin
            'status', s.status, 'uploader', s.uploader
          ) order by s.created), '[]'::jsonb)
     into v_out
-  from public.soal_bank s;
+  from public.soal_bank s
+  where v_role in ('guru','admin') or s.status = 'aktif';
   return json_build_object('ok', true, 'data', v_out);
 end $$;
 
@@ -444,6 +445,12 @@ begin
   end if;
   select * into v_ujian from public.ujian where id = p_payload->>'id';
   if not found then return json_build_object('ok', false, 'error', 'Ujian tidak ditemukan.'); end if;
+  if not exists (
+    select 1 from public.soal_bank s
+    where s.status = 'aktif' and v_ujian.soal_ids ? s.id
+  ) then
+    return json_build_object('ok', false, 'error', 'Tidak ada soal aktif pada ujian ini. Aktifkan dulu soal di bank soal (guru).');
+  end if;
   v_token := btrim(v_ujian.token);
   if v_token = '' then
     v_token := 'TKN-' || upper(left(replace(gen_random_uuid()::text, '-', ''), 8));
