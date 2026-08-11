@@ -198,22 +198,36 @@ textarea.input { resize: vertical; min-height: 80px; font-family: inherit; }
  * Pagination
  * ============================================================ */
 .pager {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-top: 16px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; margin-top: 20px; flex-wrap: wrap;
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  padding: 10px 16px;
+  box-shadow: 0 1px 2px rgba(15,23,42,.05);
 }
-.pager-info { font-size: 13px; color: var(--slate-500); font-weight: 600; }
-.pager-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pager-nums { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pager-info { font-size: 12.5px; color: var(--slate-500); font-weight: 600; }
+.pager-btns { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pager-arrow {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 10px;
+  background: #fff; color: var(--slate-500); font-size: 12px; cursor: pointer;
+  transition: all .15s;
+}
+.pager-arrow:hover:not(:disabled) {
+  border-color: var(--brand-500); color: var(--brand-700); background: var(--brand-50);
+}
+.pager-arrow:disabled { opacity: .4; cursor: not-allowed; }
+.pager-nums { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .pager-num {
-  min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--border);
-  border-radius: 9px; background: #fff; color: var(--slate-600);
-  font-weight: 700; font-size: 13px; cursor: pointer; transition: all .15s;
+  min-width: 34px; height: 34px; padding: 0 6px; border: 1px solid transparent; border-radius: 10px;
+  background: transparent; color: var(--slate-600);
+  font-weight: 700; font-size: 13.5px; cursor: pointer; transition: all .15s;
 }
-.pager-num:hover { border-color: var(--brand-500); color: var(--brand-700); }
+.pager-num:hover { background: var(--brand-50); color: var(--brand-700); }
 .pager-num.active {
   background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
-  color: #fff; border-color: transparent;
+  color: #fff; box-shadow: 0 6px 14px -4px rgba(37,99,235,.45);
 }
+.pager-dots { color: var(--slate-400); font-weight: 700; padding: 0 2px; user-select: none; }
 
 /* ============================================================
  * Badges

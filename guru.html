@@ -380,13 +380,27 @@ function renderBank() {
     var sampai = Math.min(bankPage * bankPageSize, total);
     var html = '<span class="pager-info">' + dari + "–" + sampai + " dari " + total + " soal</span>";
     html += '<div class="pager-btns">';
-    html += '<button class="btn btn-sm btn-outline" id="bankPrev"' + (bankPage <= 1 ? " disabled" : "") + '>‹ Sebelumnya</button>';
+    html += '<button class="pager-arrow" id="bankPrev"' + (bankPage <= 1 ? " disabled" : "") + ' aria-label="Halaman sebelumnya"><i class="fa-solid fa-chevron-left"></i></button>';
     html += '<span class="pager-nums">';
-    for (var p = 1; p <= totalPage; p++) {
+    var awal = Math.max(1, bankPage - 2);
+    var akhir = Math.min(totalPage, bankPage + 2);
+    if (akhir - awal + 1 < 5) {
+      if (awal === 1) akhir = Math.min(totalPage, 5);
+      else { akhir = totalPage; awal = Math.max(1, totalPage - 4); }
+    }
+    if (awal > 1) {
+      html += '<button class="pager-num' + (bankPage === 1 ? " active" : "") + '" data-page="1">1</button>';
+      if (awal > 2) html += '<span class="pager-dots">…</span>';
+    }
+    for (var p = awal; p <= akhir; p++) {
       html += '<button class="pager-num' + (p === bankPage ? " active" : "") + '" data-page="' + p + '">' + p + "</button>";
     }
+    if (akhir < totalPage) {
+      if (akhir < totalPage - 1) html += '<span class="pager-dots">…</span>';
+      html += '<button class="pager-num' + (bankPage === totalPage ? " active" : "") + '" data-page="' + totalPage + '">' + totalPage + "</button>";
+    }
     html += "</span>";
-    html += '<button class="btn btn-sm btn-outline" id="bankNext"' + (bankPage >= totalPage ? " disabled" : "") + '>Berikutnya ›</button>';
+    html += '<button class="pager-arrow" id="bankNext"' + (bankPage >= totalPage ? " disabled" : "") + ' aria-label="Halaman berikutnya"><i class="fa-solid fa-chevron-right"></i></button>';
     html += "</div>";
     pager.innerHTML = html;
   }
@@ -404,10 +418,11 @@ function renderBank() {
   document.getElementById("fCari").addEventListener("input", filterBerubah);
   document.getElementById("btnRefresh").addEventListener("click", muatBankSoal);
   document.getElementById("bankPager").addEventListener("click", function (e) {
-    var t = e.target;
-    if (t.id === "bankPrev") { bankPage--; renderBank(); }
-    else if (t.id === "bankNext") { bankPage++; renderBank(); }
-    else if (t.classList.contains("pager-num")) { bankPage = parseInt(t.dataset.page, 10) || 1; renderBank(); }
+    var btn = e.target.closest("button");
+    if (!btn) return;
+    if (btn.id === "bankPrev") { bankPage--; renderBank(); }
+    else if (btn.id === "bankNext") { bankPage++; renderBank(); }
+    else if (btn.classList.contains("pager-num")) { bankPage = parseInt(btn.dataset.page, 10) || 1; renderBank(); }
   });
 
   /* ===== UPLOAD DOCX ===== */
