@@ -249,12 +249,15 @@
     var hasil = (db.hasil || []).slice();
     hasil.forEach(function (h) {
       var s = siswa.find(function (x) { return x.username === h.username; });
-      if (s) {
-        if (!h.kelas) h.kelas = s.kelas || "";
-        if (!h.kode_ujian) {
-          var u = ujian.find(function (x) { return x.kode === s.ujianId; });
-          h.kode_ujian = u ? u.kode : (s.ujianId || "");
-        }
+      if (!h.kelas && s && s.kelas) h.kelas = s.kelas;
+      if (!h.kode_ujian && s && s.ujianId) {
+        var u = ujian.find(function (x) { return x.kode === s.ujianId; }) ||
+                ujian.find(function (x) { return x.id === s.ujianId; });
+        h.kode_ujian = u ? u.kode : s.ujianId;
+      }
+      if (!h.kelas && h.kode_ujian) {
+        var un = ujian.find(function (x) { return x.kode === h.kode_ujian; });
+        if (un && un.kelas) h.kelas = un.kelas;
       }
     });
     return { ok: true, data: hasil };

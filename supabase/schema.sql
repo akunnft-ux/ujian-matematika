@@ -592,11 +592,28 @@ begin
   if v_role is null or v_role not in ('admin','guru') then
     return json_build_object('ok', false, 'error', 'Khusus guru/admin.');
   end if;
-  select coalesce(jsonb_agg(jsonb_build_object(
-           'username', h.username, 'nis', h.nis, 'nama', h.nama,
-           'kode_ujian', h.kode_ujian, 'kelas', h.kelas,
-           'benar', h.benar, 'total', h.total, 'nilai', h.nilai, 'ts', h.ts) order by h.ts desc), '[]'::jsonb)
-    into v_out from public.hasil h;
+  select coalesce(jsonb_agg(
+           jsonb_build_object(
+             'username', h.username, 'nis', h.nis, 'nama', h.nama,
+             'kode_ujian', coalesce(nullif(h.kode_ujian, ''), nullif(u.kode, ''), nullif(ku.ujian_id, ''), ''),
+             'kelas', coalesce(nullif(h.kelas, ''), nullif(ku.kelas, ''), nullif(u.kelas, ''), ''),
+             'benar', h.benar, 'total', h.total, 'nilai', h.nilai, 'ts', h.ts
+           ) order by h.ts desc), '[]'::jsonb)
+    into v_out
+  from public.hasil h
+  left join lateral (
+    select ku.ujian_id, ku.kelas
+      from public.kode_ujian ku
+     where ku.username = h.username
+     limit 1
+  ) ku on true
+  left join lateral (
+    select u.kode, u.kelas
+      from public.ujian u
+     where u.kode = ku.ujian_id or u.id = ku.ujian_id
+        or u.kode = h.kode_ujian
+     limit 1
+  ) u on true;
   return json_build_object('ok', true, 'data', v_out);
 end $$;
 
