@@ -242,7 +242,23 @@
     var db = loadMock();
     return { ok: true, data: db.sesi || [] };
   }
-  function mockGetHasil() { return { ok: true, data: (loadMock().hasil || []).slice() }; }
+  function mockGetHasil() {
+    var db = loadMock();
+    var siswa = db.kodeUjian || [];
+    var ujian = db.ujian || [];
+    var hasil = (db.hasil || []).slice();
+    hasil.forEach(function (h) {
+      var s = siswa.find(function (x) { return x.username === h.username; });
+      if (s) {
+        if (!h.kelas) h.kelas = s.kelas || "";
+        if (!h.kode_ujian) {
+          var u = ujian.find(function (x) { return x.kode === s.ujianId; });
+          h.kode_ujian = u ? u.kode : (s.ujianId || "");
+        }
+      }
+    });
+    return { ok: true, data: hasil };
+  }
   function mockGetUsers() { return { ok: true, data: (loadMock().users || []).slice() }; }
   function mockTambahUser(user) {
     var db = loadMock();
@@ -279,6 +295,7 @@
     var nilai = total ? Math.round((hitung / total) * 100) : 0;
     db.hasil.push({
       username: payload.username, nis: payload.nis, nama: payload.nama,
+      kode_ujian: payload.kode || "", kelas: payload.kelas || "",
       benar: hitung, total: total, nilai: nilai, ts: mockNow()
     });
     var sesi = (db.sesi || []).find(function (s) { return s.username === payload.username; });

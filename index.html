@@ -510,6 +510,8 @@
       username: state.siswa.username,
       nis: state.siswa.nis,
       nama: state.siswa.nama,
+      kode: state.ujian.kode || "",
+      kelas: state.siswa.kelas || "",
       jawaban: state.urutan.map(function (id) {
         var j = state.jawaban[id];
         return { soalId: id, jawaban: j && j.pilihan ? j.pilihan : null };

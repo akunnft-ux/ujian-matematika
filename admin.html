@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -80,7 +81,18 @@
 
     <section id="tab-hasil" class="tab-panel hidden">
       <div class="section-head"><h2>Hasil Ujian</h2></div>
-      <div id="hasilBox" class="table-wrap"></div>
+      <div class="card">
+        <div class="flex" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+          <select id="hfKode" class="input" style="max-width:180px"><option value="">Semua kode ujian</option></select>
+          <select id="hfKelas" class="input" style="max-width:160px"><option value="">Semua kelas</option></select>
+          <div class="input-icon-wrap" style="max-width:240px; flex:1 1 180px; min-width:150px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="hfCari" class="input" placeholder="Cari nama siswa...">
+          </div>
+          <button id="btnExportHasil" class="btn btn-outline" style="margin-left:auto"><i class="fa-solid fa-file-excel"></i> Export XLS</button>
+        </div>
+        <div id="hasilBox" class="table-wrap"></div>
+      </div>
     </section>
   </main>
 </div>
@@ -277,17 +289,104 @@
   };
 
   /* ===== HASIL ===== */
+  var hasilData = [];
   function muatHasil() {
     AppAPI.call("get-hasil").then(function (res) {
-      var list = res.data || [];
-      var box = document.getElementById("hasilBox");
-      if (!list.length) { box.innerHTML = '<div class="card muted center">Belum ada hasil.</div>'; return; }
-      box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Benar</th><th>Total</th><th>Nilai</th><th>Waktu</th></tr></thead><tbody>" +
-        list.map(function (h) {
-          return "<tr><td>" + h.nama + "</td><td>" + h.nis + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
-        }).join("") + "</tbody></table>";
+      hasilData = res.data || [];
+      isiFilterHasil();
+      renderHasil();
     });
   }
+
+  function isiFilterHasil() {
+    var kodeSet = [...new Set(hasilData.map(function (h) { return h.kode_ujian; }))].filter(Boolean);
+    var kelasSet = [...new Set(hasilData.map(function (h) { return h.kelas; }))].filter(Boolean);
+    document.getElementById("hfKode").innerHTML = '<option value="">Semua kode ujian</option>' +
+      kodeSet.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+    document.getElementById("hfKelas").innerHTML = '<option value="">Semua kelas</option>' +
+      kelasSet.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+  }
+
+  function filterHasil() {
+    var kode = document.getElementById("hfKode").value;
+    var kelas = document.getElementById("hfKelas").value;
+    var q = document.getElementById("hfCari").value.trim().toLowerCase();
+    return hasilData.filter(function (h) {
+      if (kode && (h.kode_ujian || "") !== kode) return false;
+      if (kelas && (h.kelas || "") !== kelas) return false;
+      if (q) {
+        var hay = ((h.nama || "") + " " + (h.nis || "")).toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderHasil() {
+    var list = filterHasil();
+    var box = document.getElementById("hasilBox");
+    if (!list.length) {
+      box.innerHTML = '<div class="card muted center">' + (hasilData.length ? "Tidak ada hasil yang cocok dengan filter." : "Belum ada hasil.") + "</div>";
+      return;
+    }
+    box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Kelas</th><th>Kode Ujian</th><th>Benar</th><th>Total</th><th>Nilai</th><th>Waktu</th></tr></thead><tbody>" +
+      list.map(function (h) {
+        return "<tr><td>" + h.nama + "</td><td>" + h.nis + "</td><td>" + (h.kelas || "-") + "</td><td>" + (h.kode_ujian || "-") + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  document.getElementById("hfKode").addEventListener("change", renderHasil);
+  document.getElementById("hfKelas").addEventListener("change", renderHasil);
+  document.getElementById("hfCari").addEventListener("input", renderHasil);
+
+  function barisHasil(list) {
+    return list.map(function (h) {
+      return {
+        "Nama": h.nama || "",
+        "NIS": h.nis || "",
+        "Kelas": h.kelas || "-",
+        "Kode Ujian": h.kode_ujian || "-",
+        "Benar": h.benar,
+        "Total": h.total,
+        "Nilai": h.nilai,
+        "Waktu": h.ts ? new Date(h.ts).toLocaleString() : ""
+      };
+    });
+  }
+
+  function exportHasilXls() {
+    var list = filterHasil();
+    if (!list.length) { toast("Tidak ada data hasil untuk diexport."); return; }
+    if (typeof XLSX === "undefined") { toast("Library export belum termuat."); return; }
+    var usedNames = {};
+    var sheetCount = 0;
+    function uniqueName(base) {
+      var name = String(base || "Sheet").replace(/[\\\/\?\*\[\]:]/g, "_").slice(0, 31);
+      var n = name, k = 1;
+      while (usedNames[n]) { k++; n = name.slice(0, 27) + "(" + k + ")"; }
+      usedNames[n] = true;
+      return n;
+    }
+    function addSheet(rows, sheetName) {
+      if (!rows.length) return;
+      var ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = [{ wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 20 }];
+      XLSX.utils.book_append_sheet(wb, ws, uniqueName(sheetName));
+      sheetCount++;
+    }
+    var wb = XLSX.utils.book_new();
+    addSheet(barisHasil(list), "Semua Hasil");
+    [...new Set(list.map(function (h) { return h.kelas; }))].filter(Boolean).forEach(function (k) {
+      addSheet(barisHasil(list.filter(function (h) { return h.kelas === k; })), "Kelas " + k);
+    });
+    [...new Set(list.map(function (h) { return h.kode_ujian; }))].filter(Boolean).forEach(function (k) {
+      addSheet(barisHasil(list.filter(function (h) { return h.kode_ujian === k; })), "Kode " + k);
+    });
+    XLSX.writeFile(wb, "hasil-ujian-" + new Date().toISOString().slice(0, 10) + ".xlsx");
+    toast("Export " + list.length + " baris ke " + sheetCount + " sheet sukses.");
+  }
+
+  document.getElementById("btnExportHasil").addEventListener("click", exportHasilXls);
 
   /* ===== AUTO-LOGIN jika sesi admin ada =====
    * Sesi divalidasi ke server dulu — jika sudah tidak berlaku

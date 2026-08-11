@@ -98,15 +98,20 @@ create table if not exists public.jawaban (
 
 -- Hasil akhir ujian
 create table if not exists public.hasil (
-  id       bigserial primary key,
-  username text not null default '',
-  nis      text not null default '',
-  nama     text not null default '',
-  benar    integer not null default 0,
-  total    integer not null default 0,
-  nilai    integer not null default 0,
-  ts       timestamptz not null default now()
+  id         bigserial primary key,
+  username   text not null default '',
+  nis        text not null default '',
+  nama       text not null default '',
+  kode_ujian text not null default '',
+  kelas      text not null default '',
+  benar      integer not null default 0,
+  total      integer not null default 0,
+  nilai      integer not null default 0,
+  ts         timestamptz not null default now()
 );
+
+alter table public.hasil add column if not exists kode_ujian text not null default '';
+alter table public.hasil add column if not exists kelas text not null default '';
 
 -- ============================================================
 -- RLS + REVOKE: anon/authenticated tidak boleh akses tabel
@@ -502,12 +507,20 @@ declare
   v_salah integer := 0;
   v_nilai integer := 0;
   v_username text;
+  v_kode_ujian text;
+  v_kelas text;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null then
     return json_build_object('ok', false, 'error', 'Sesi tidak valid.');
   end if;
   v_username := coalesce(p_payload->>'username', '');
+  v_kode_ujian := coalesce(p_payload->>'kode', '');
+  v_kelas := coalesce(p_payload->>'kelas', '');
+  select coalesce(ujian_id, ''), coalesce(kelas, '') into v_kode_ujian, v_kelas
+    from public.kode_ujian where username = v_username;
+  if coalesce(v_kode_ujian, '') = '' then v_kode_ujian := coalesce(p_payload->>'kode', ''); end if;
+  if coalesce(v_kelas, '') = '' then v_kelas := coalesce(p_payload->>'kelas', ''); end if;
   v_ans := coalesce(p_payload->'jawaban', '[]'::jsonb);
   for v_j in select * from jsonb_array_elements(v_ans) loop
     v_total := v_total + 1;
@@ -521,9 +534,9 @@ begin
     end if;
   end loop;
   v_nilai := case when v_total > 0 then round((v_benar * 100.0) / v_total) else 0 end;
-  insert into public.hasil (username, nis, nama, benar, total, nilai, ts)
+  insert into public.hasil (username, nis, nama, kode_ujian, kelas, benar, total, nilai, ts)
   values (v_username, coalesce(p_payload->>'nis', ''), coalesce(p_payload->>'nama', ''),
-          v_benar, v_total, v_nilai, now());
+          v_kode_ujian, v_kelas, v_benar, v_total, v_nilai, now());
   update public.sesi set status = 'SELESAI' where username = v_username;
   return json_build_object('ok', true, 'data', json_build_object(
     'benar', v_benar, 'salah', v_salah, 'kosong', v_kosong, 'total', v_total, 'nilai', v_nilai
@@ -581,6 +594,7 @@ begin
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
            'username', h.username, 'nis', h.nis, 'nama', h.nama,
+           'kode_ujian', h.kode_ujian, 'kelas', h.kelas,
            'benar', h.benar, 'total', h.total, 'nilai', h.nilai, 'ts', h.ts) order by h.ts desc), '[]'::jsonb)
     into v_out from public.hasil h;
   return json_build_object('ok', true, 'data', v_out);
