@@ -195,6 +195,27 @@ textarea.input { resize: vertical; min-height: 80px; font-family: inherit; }
 .btn-sm { padding: 7px 13px; font-size: 13px; border-radius: 10px; }
 
 /* ============================================================
+ * Pagination
+ * ============================================================ */
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-top: 16px; flex-wrap: wrap;
+}
+.pager-info { font-size: 13px; color: var(--slate-500); font-weight: 600; }
+.pager-btns { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pager-nums { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pager-num {
+  min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--border);
+  border-radius: 9px; background: #fff; color: var(--slate-600);
+  font-weight: 700; font-size: 13px; cursor: pointer; transition: all .15s;
+}
+.pager-num:hover { border-color: var(--brand-500); color: var(--brand-700); }
+.pager-num.active {
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+  color: #fff; border-color: transparent;
+}
+
+/* ============================================================
  * Badges
  * ============================================================ */
 .badge {

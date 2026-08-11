@@ -630,3 +630,26 @@ begin
           coalesce(v_user->>'role', 'guru'), coalesce(v_user->>'aktif', 'true')::boolean);
   return json_build_object('ok', true);
 end $$;
+
+create or replace function public.rpc_hapus_user(p_payload jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_role text;
+  v_username text;
+begin
+  v_role := public.sesi_role(p_payload->>'session_id');
+  if v_role is null or v_role <> 'admin' then
+    return json_build_object('ok', false, 'error', 'Khusus admin.');
+  end if;
+  v_username := btrim(coalesce(p_payload->>'username', ''));
+  if v_username = '' then
+    return json_build_object('ok', false, 'error', 'Username kosong');
+  end if;
+  if v_username = 'admin' then
+    return json_build_object('ok', false, 'error', 'Akun admin utama tidak bisa dihapus.');
+  end if;
+  delete from public.users where username = v_username;
+  return json_build_object('ok', true);
+end $$;

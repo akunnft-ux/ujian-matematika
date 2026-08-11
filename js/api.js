@@ -250,6 +250,15 @@
     saveMock(db);
     return { ok: true };
   }
+  function mockHapusUser(username) {
+    var db = loadMock();
+    if (username === "admin") return { ok: false, error: "Akun admin utama tidak bisa dihapus." };
+    var sebelum = (db.users || []).length;
+    db.users = (db.users || []).filter(function (u) { return u.username !== username; });
+    if (db.users.length === sebelum) return { ok: false, error: "Akun tidak ditemukan." };
+    saveMock(db);
+    return { ok: true };
+  }
 
   function mockJawaban(payload) {
     var db = loadMock();
@@ -296,6 +305,7 @@
       case "get-hasil": return mockGetHasil();
       case "get-users": return mockGetUsers();
       case "tambah-user": return mockTambahUser(payload.user);
+      case "hapus-user": return mockHapusUser(payload.username);
       case "jawaban": return mockJawaban(payload);
       case "submit-ujian": return mockSubmitUjian(payload);
       default: return { ok: false, error: "Aksi tidak dikenal: " + action };
@@ -320,6 +330,7 @@
     "get-hasil": "rpc_get_hasil",
     "get-users": "rpc_get_users",
     "tambah-user": "rpc_tambah_user",
+    "hapus-user": "rpc_hapus_user",
     "jawaban": "rpc_jawaban",
     "submit-ujian": "rpc_submit_ujian"
   };
