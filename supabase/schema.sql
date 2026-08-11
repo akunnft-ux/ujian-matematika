@@ -112,6 +112,17 @@ create table if not exists public.hasil (
 
 alter table public.hasil add column if not exists kode_ujian text not null default '';
 alter table public.hasil add column if not exists kelas text not null default '';
+alter table public.sesi add column if not exists mulai_ts timestamptz;
+
+-- Dedup data lama sebelum index unik dibuat (keep baris terbaru per kunci)
+delete from public.jawaban a using public.jawaban b
+  where a.username = b.username and a.soal_id = b.soal_id and a.id < b.id;
+delete from public.hasil a using public.hasil b
+  where a.username = b.username and a.kode_ujian = b.kode_ujian
+    and a.kode_ujian <> '' and a.id < b.id;
+
+create unique index if not exists uq_jawaban_user_soal on public.jawaban (username, soal_id);
+create unique index if not exists uq_hasil_user_kode on public.hasil (username, kode_ujian) where kode_ujian <> '';
 
 -- ============================================================
 -- RLS + REVOKE: anon/authenticated tidak boleh akses tabel
@@ -198,6 +209,8 @@ declare
   v_sid    text;
   v_user   text;
   v_ada    boolean;
+  v_mulai  timestamptz;
+  v_sisa   integer;
 begin
   v_user := btrim(coalesce(p_payload->>'username', ''));
   select * into v_siswa from public.kode_ujian where username = v_user;
@@ -224,19 +237,30 @@ begin
   v_sid := public.token_baru('s');
   insert into public.sessions (id, username, role) values (v_sid, v_user, 'siswa');
 
+  -- mulai_ts ditetapkan saat pertama mulai; pertahankan saat masuk ulang
+  -- agar sisa waktu dihitung dari awal sesi (jam dinding tetap berjalan).
   if v_ada then
     update public.sesi set status='ACTIVE', login_ts=now(), fingerprint=coalesce(p_payload->>'fingerprint','')
       where username = v_user;
+    select mulai_ts into v_mulai from public.sesi where username = v_user;
   else
-    insert into public.sesi (username, nis, status, login_ts, fingerprint)
-      values (v_user, v_siswa.nis, 'ACTIVE', now(), coalesce(p_payload->>'fingerprint',''));
+    insert into public.sesi (username, nis, status, login_ts, fingerprint, mulai_ts)
+      values (v_user, v_siswa.nis, 'ACTIVE', now(), coalesce(p_payload->>'fingerprint',''), now());
+    v_mulai := now();
   end if;
+  v_mulai := coalesce(v_mulai, now());
+  v_sisa := greatest(0, v_ujian.durasi_menit * 60 - extract(epoch from (now() - v_mulai))::integer);
 
   return json_build_object('ok', true, 'data', json_build_object(
     'sessionId', v_sid,
     'siswa', json_build_object('username', v_siswa.username, 'nis', v_siswa.nis, 'nama', v_siswa.nama, 'kelas', v_siswa.kelas),
     'ujian', json_build_object('id', v_ujian.id, 'kode', v_ujian.kode, 'nama', v_ujian.nama,
-                               'durasiMenit', v_ujian.durasi_menit, 'soalIds', v_ujian.soal_ids)
+                               'durasiMenit', v_ujian.durasi_menit, 'soalIds', v_ujian.soal_ids),
+    'sisaDetik', v_sisa,
+    'jawabanLama', (select coalesce(jsonb_agg(
+                       jsonb_build_object('soalId', soal_id, 'jawaban', jawaban) order by ts), '[]'::jsonb)
+                      from public.jawaban
+                     where username = v_user and soal_id = any(v_ujian.soal_ids))
   ));
 end $$;
 
@@ -495,7 +519,9 @@ begin
   insert into public.jawaban (username, nis, soal_id, jawaban, ts)
   values (coalesce(p_payload->>'username', ''), coalesce(p_payload->>'nis', ''),
           p_payload->>'soalId', coalesce(p_payload->>'jawaban', ''),
-          coalesce(nullif(p_payload->>'ts', '')::timestamptz, now()));
+          coalesce(nullif(p_payload->>'ts', '')::timestamptz, now()))
+  on conflict (username, soal_id) do update
+    set jawaban = excluded.jawaban, nis = excluded.nis, ts = excluded.ts;
   return json_build_object('ok', true);
 end $$;
 
@@ -543,7 +569,10 @@ begin
   v_nilai := case when v_total > 0 then round((v_benar * 100.0) / v_total) else 0 end;
   insert into public.hasil (username, nis, nama, kode_ujian, kelas, benar, total, nilai, ts)
   values (v_username, coalesce(p_payload->>'nis', ''), coalesce(p_payload->>'nama', ''),
-          v_kode_ujian, v_kelas, v_benar, v_total, v_nilai, now());
+          v_kode_ujian, v_kelas, v_benar, v_total, v_nilai, now())
+  on conflict (username, kode_ujian) where kode_ujian <> '' do update
+    set nis = excluded.nis, nama = excluded.nama, kelas = excluded.kelas,
+        benar = excluded.benar, total = excluded.total, nilai = excluded.nilai, ts = excluded.ts;
   update public.sesi set status = 'SELESAI' where username = v_username;
   return json_build_object('ok', true, 'data', json_build_object(
     'benar', v_benar, 'salah', v_salah, 'kosong', v_kosong, 'total', v_total, 'nilai', v_nilai
@@ -585,6 +614,10 @@ begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null or v_role <> 'admin' then
     return json_build_object('ok', false, 'error', 'Khusus admin.');
+  end if;
+  if exists (select 1 from public.hasil where username = p_payload->>'username')
+     or exists (select 1 from public.sesi where username = p_payload->>'username' and status = 'SELESAI') then
+    return json_build_object('ok', false, 'error', 'Siswa sudah mengumpulkan ujian; hasil tidak bisa dibatalkan lewat reset.');
   end if;
   update public.sesi set status = 'INACTIVE' where username = p_payload->>'username';
   return json_build_object('ok', true);

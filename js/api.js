@@ -152,14 +152,32 @@
     if (sesi && sesi.status === "SELESAI") {
       return { ok: false, error: "Anda sudah mengumpulkan ujian." };
     }
-    var sesiBaru = {
-      username: siswa.username, nis: siswa.nis, status: "ACTIVE",
-      login_ts: mockNow(), fingerprint: navigator.userAgent.slice(0, 40)
-    };
-    if (sesi) { sesi.status = "ACTIVE"; sesi.login_ts = sesiBaru.login_ts; }
-    else db.sesi.push(sesiBaru);
+    var mulaiTs;
+    if (sesi) {
+      mulaiTs = sesi.mulai_ts || mockNow();
+      sesi.status = "ACTIVE";
+      sesi.login_ts = mockNow();
+      sesi.fingerprint = navigator.userAgent.slice(0, 40);
+    } else {
+      mulaiTs = mockNow();
+      db.sesi.push({
+        username: siswa.username, nis: siswa.nis, status: "ACTIVE",
+        login_ts: mockNow(), fingerprint: navigator.userAgent.slice(0, 40), mulai_ts: mulaiTs
+      });
+    }
+    var sisaDetik = (ujian.durasiMenit || 60) * 60 - Math.max(0, Math.floor((Date.now() - new Date(mulaiTs).getTime()) / 1000));
+    if (sisaDetik < 0) sisaDetik = 0;
+    var jawabanLama = (db.jawaban || []).filter(function (j) {
+      return j.username === siswa.username && (ujian.soalIds || []).indexOf(j.soalId) >= 0;
+    }).map(function (j) { return { soalId: j.soalId, jawaban: j.jawaban }; });
     saveMock(db);
-    return { ok: true, data: { siswa: siswa, ujian: ujian, sessionId: "sess-" + Date.now() } };
+    return {
+      ok: true,
+      data: {
+        siswa: siswa, ujian: ujian, sessionId: "sess-" + Date.now(),
+        sisaDetik: sisaDetik, jawabanLama: jawabanLama
+      }
+    };
   }
 
   function mockGetBankSoal() {
@@ -239,7 +257,11 @@
 
   function mockResetLogin(username) {
     var db = loadMock();
+    var punyaHasil = (db.hasil || []).some(function (h) { return h.username === username; });
     var sesi = (db.sesi || []).find(function (s) { return s.username === username; });
+    if (punyaHasil || (sesi && sesi.status === "SELESAI")) {
+      return { ok: false, error: "Siswa sudah mengumpulkan ujian; hasil tidak bisa dibatalkan lewat reset." };
+    }
     if (sesi) sesi.status = "INACTIVE";
     saveMock(db);
     return { ok: true };
@@ -297,7 +319,16 @@
 
   function mockJawaban(payload) {
     var db = loadMock();
-    (db.jawaban || []).push(payload);
+    var arr = db.jawaban || [];
+    var idx = arr.findIndex(function (j) {
+      return j.username === payload.username && j.soalId === payload.soalId;
+    });
+    var row = {
+      username: payload.username, nis: payload.nis || "",
+      soalId: payload.soalId, jawaban: payload.jawaban || "",
+      ts: payload.ts || mockNow()
+    };
+    if (idx >= 0) arr[idx] = row; else arr.push(row);
     saveMock(db);
     return { ok: true };
   }
@@ -312,11 +343,15 @@
       if (s && s.kunci === j.jawaban) hitung++;
     });
     var nilai = total ? Math.round((hitung / total) * 100) : 0;
-    db.hasil.push({
+    var row = {
       username: payload.username, nis: payload.nis, nama: payload.nama,
       kode_ujian: payload.kode || "", kelas: payload.kelas || "",
       benar: hitung, total: total, nilai: nilai, ts: mockNow()
+    };
+    var idx = db.hasil.findIndex(function (h) {
+      return h.username === payload.username && h.kode_ujian && h.kode_ujian === row.kode_ujian;
     });
+    if (idx >= 0) db.hasil[idx] = row; else db.hasil.push(row);
     var sesi = (db.sesi || []).find(function (s) { return s.username === payload.username; });
     if (sesi) sesi.status = "SELESAI";
     saveMock(db);

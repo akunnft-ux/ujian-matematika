@@ -201,6 +201,8 @@
     urutan: [],           // urutan soal
     idx: 0,
     waktuSisa: 0,
+    sisaDetik: null,      // sisa waktu dari server saat resume (detik)
+    jawabanLama: [],      // jawaban tersimpan server saat resume
     timerInt: null,
     terkirim: {}          // soalId -> true (sudah di-lock/kirim)
   };
@@ -299,6 +301,8 @@
       if (!res.ok) { el.mulaiMsg.textContent = res.error; return; }
       state.siswa = res.data.siswa;
       state.ujian = res.data.ujian || state.ujian;
+      state.sisaDetik = typeof res.data.sisaDetik === "number" ? res.data.sisaDetik : null;
+      state.jawabanLama = res.data.jawabanLama || [];
       AppSession.save({ role: "siswa", sessionId: res.data.sessionId });
       AppSession.simpanIdentitasSiswa(state.siswa);
       mulaiUjian();
@@ -327,11 +331,18 @@
 
         if (!state.soal.length) { alert("Belum ada soal aktif untuk ujian ini."); return; }
 
+        // resume pasca-reset: pulihkan jawaban tersimpan & sisa waktu dari server
+        (state.jawabanLama || []).forEach(function (j) {
+          if (byId[j.soalId]) state.jawaban[j.soalId] = { pilihan: j.jawaban || "", ragu: false };
+        });
+        state.waktuSisa = state.sisaDetik != null
+          ? state.sisaDetik
+          : (ujian && ujian.durasiMenit ? ujian.durasiMenit : AppConfig.EXAM.defaultDurasiMenit) * 60;
+
         var nama = state.siswa.nama || state.siswa.nis || "Siswa";
         el.examTitle.textContent = (ujian && ujian.nama) || "Ujian Matematika";
         el.examInfo.textContent = nama + " · " + (state.siswa.kelas || "");
         el.userbox.innerHTML = '<i class="fa-solid fa-user"></i> ' + nama;
-        state.waktuSisa = (ujian && ujian.durasiMenit ? ujian.durasiMenit : AppConfig.EXAM.defaultDurasiMenit) * 60;
         el.screenConfirm.classList.add("hidden");
         el.screenExam.classList.remove("hidden");
         tampilkanSoal();
