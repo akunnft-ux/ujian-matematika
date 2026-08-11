@@ -559,9 +559,12 @@ begin
     return json_build_object('ok', false, 'error', 'Khusus admin.');
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
-           'username', s.username, 'nis', s.nis, 'status', s.status,
-           'login_ts', s.login_ts, 'fingerprint', s.fingerprint) order by s.login_ts desc), '[]'::jsonb)
-    into v_out from public.sesi s;
+           'username', ku.username, 'nis', ku.nis,
+           'status', coalesce(s.status, 'INACTIVE'),
+           'login_ts', s.login_ts, 'fingerprint', s.fingerprint) order by s.login_ts desc nulls last), '[]'::jsonb)
+    into v_out
+  from public.kode_ujian ku
+  left join public.sesi s on s.username = ku.username;
   return json_build_object('ok', true, 'data', v_out);
 end $$;
 

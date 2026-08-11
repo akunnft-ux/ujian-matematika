@@ -240,7 +240,17 @@
   }
   function mockGetProgress() {
     var db = loadMock();
-    return { ok: true, data: db.sesi || [] };
+    var sesi = db.sesi || [];
+    return { ok: true, data: (db.kodeUjian || []).map(function (k) {
+      var s = sesi.find(function (x) { return x.username === k.username; });
+      return {
+        username: k.username,
+        nis: k.nis || "",
+        status: s ? s.status : "INACTIVE",
+        login_ts: s ? s.login_ts : null,
+        fingerprint: s ? s.fingerprint : ""
+      };
+    }) };
   }
   function mockGetHasil() {
     var db = loadMock();

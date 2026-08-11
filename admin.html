@@ -164,18 +164,21 @@
   });
 
   /* ===== MONITOR ===== */
+  function infoStatusSiswa(st) {
+    if (st === "ACTIVE") return { label: "Sedang ujian", badge: "badge-green" };
+    if (st === "SELESAI") return { label: "Selesai", badge: "badge-blue" };
+    return { label: "Belum ujian", badge: "badge-slate" };
+  }
   document.getElementById("btnRefreshMonitor").addEventListener("click", muatMonitor);
   function muatMonitor() {
     Promise.all([AppAPI.call("get-progress"), AppAPI.call("get-ujian")]).then(function (rs) {
       var sesi = rs[0].data || [];
-      var ujian = rs[1].data || [];
       var box = document.getElementById("monitorBox");
-      if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa login.</div>'; return; }
+      if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
       box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
         sesi.map(function (s) {
-          var badge = s.status === "ACTIVE" ? "badge-green" : s.status === "SELESAI" ? "badge-blue" : "badge-slate";
-          var label = s.status === "SELESAI" ? "Selesai" : s.status === "ACTIVE" ? "Sedang ujian" : "Aktif";
-          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + badge + "'>" + label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
+          var st = infoStatusSiswa(s.status);
+          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     });
   }
@@ -189,10 +192,10 @@
       if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
       box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Aksi</th></tr></thead><tbody>" +
         sesi.map(function (s) {
-          var badge = s.status === "ACTIVE" ? "badge-green" : s.status === "SELESAI" ? "badge-blue" : "badge-slate";
+          var st = infoStatusSiswa(s.status);
           var btn = s.status === "INACTIVE" ? "" :
             "<button class='btn btn-sm btn-outline' onclick='window.__resetLogin(\"" + s.username + "\")'>Reset Login</button>";
-          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + badge + "'>" + s.status + "</span></td><td>" + btn + "</td></tr>";
+          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td>" + btn + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     });
   }
