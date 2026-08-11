@@ -260,7 +260,7 @@ begin
     'jawabanLama', (select coalesce(jsonb_agg(
                        jsonb_build_object('soalId', soal_id, 'jawaban', jawaban) order by ts), '[]'::jsonb)
                       from public.jawaban
-                     where username = v_user and soal_id = any(v_ujian.soal_ids))
+                     where username = v_user and v_ujian.soal_ids ? soal_id)
   ));
 end $$;
 
