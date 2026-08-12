@@ -115,7 +115,13 @@
       if (mKode) { kode = mKode[1].trim(); return; }
       var mJenjang = l.text.match(/^\s*JENJANG\s*[:]\s*(.+)\s*$/i);
       if (mJenjang) { jenjang = mJenjang[1].trim(); return; }
-      if (/^\s*KUNCI\s*JAWABAN\s*[:]*\s*$/i.test(l.text)) { diKunci = true; return; }
+      var mKunci = l.text.match(/^\s*KUNCI\s*JAWABAN\s*[:]*\s*(.*)$/i);
+      if (mKunci) {
+        diKunci = true;
+        var sisaKunci = mKunci[1].trim();
+        if (sisaKunci) kunciLines.push(sisaKunci); // header satu baris: "1.A 2.B ..."
+        return;
+      }
       if (diKunci) { if (l.text.trim()) kunciLines.push(l.text); return; }
 
       var mNomor = l.text.match(/^\s*(\d{1,3})[.)]\s*(.*)$/);
@@ -147,11 +153,29 @@
     soal.forEach(function (s) { s.kode = kode; s.jenjang = jenjang; });
 
     // apply kunci ke soal
+    var kunciRe = /(\d{1,3})\s*[.)]?\s*([A-Ea-e])/g;
+    var letterOnly = /^\s*([A-Ea-e])\s*$/;
+    var urut = soal.slice(); // urutan dokumen, utk fallback positional
+    var urutIdx = 0;
     kunciLines.forEach(function (kl) {
-      var mk = kl.match(/(\d{1,3})\s*[.)]?\s*([A-Ea-e])/);
-      if (mk) {
+      var mk, matched = false;
+      kunciRe.lastIndex = 0;
+      // format "1. B" (nomor + huruf), bisa beberapa jawaban per baris
+      while ((mk = kunciRe.exec(kl))) {
+        matched = true;
         var s = soal.find(function (x) { return x.nomor === parseInt(mk[1], 10); });
-        if (s) s.kunci = mk[2].toUpperCase();
+        if (s && !s.kunci) s.kunci = mk[2].toUpperCase();
+      }
+      // fallback: baris huruf tanpa nomor (auto-numbering Word / tabel "No | Kunci")
+      if (!matched) {
+        var lm = kl.match(letterOnly);
+        if (lm) {
+          while (urutIdx < urut.length && urut[urutIdx].kunci) urutIdx++;
+          if (urutIdx < urut.length) {
+            urut[urutIdx].kunci = lm[1].toUpperCase();
+            urutIdx++;
+          }
+        }
       }
     });
 
@@ -164,6 +188,9 @@
 
   /* ============ PUBLIC ============ */
   global.DocxParser = {
+    /** Pisah baris → soal (dipakai juga utk uji unit). */
+    splitQuestions: splitQuestions,
+
     /** @returns Promise<soal[]> struktur soal dari .docx */
     parse: function (file, onProgress) {
       return new Promise(function (resolve, reject) {

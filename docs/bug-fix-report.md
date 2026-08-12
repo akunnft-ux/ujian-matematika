@@ -12,6 +12,17 @@ Tanggal: 2026-08-12 · Scope: guru.html, index.html, admin.html, supabase/schema
 | 4 | Medium | Loop kirim-ulang submit saat offline/waktu habis | index.html | Fixed |
 | 5 | High | Timer dipakai untuk semua ujian meski `durasiMenit` berubah | index.html | Fixed |
 
+## 6. Kunci jawaban tidak terbaca dari .docx (auto-numbering / tabel / header satu-baris)
+
+**Triage:** Template `25_Soal_TKA_Bahasa_Indonesia_SD_MI_Literasi.docx` memakai **auto-numbering Word** di bagian KUNCI JAWABAN (`w:numPr`): angka "1., 2., …" tampil di Word tapi tidak tersimpan di teks XML — `w:t` hanya berisi huruf `C`, `B`, dst. Regex kunci lama `/(\d{1,3})\s*[.)]?\s*([A-Ea-e])/` membutuhkan nomor → semua kunci terlewat → `kunci: ""`.
+
+**Fix (docx-parser.js `splitQuestions`):**
+- Header regex kini menangkap sisa isi baris → format `KUNCI JAWABAN: 1.A 2.B 3.C` juga didukung (regex global, semua jawaban per baris).
+- **Fallback positional**: baris kunci berupa huruf tunggal `^([A-Ea-e])$` (tanpa nomor) dipetakan berurutan ke soal urutan dokumen yang belum punya kunci → menangani auto-numbering Word dan tabel 2 kolom "No | Kunci".
+- `splitQuestions` di-export untuk unit test.
+
+**Verifikasi:** 10/10 pass — file asli (25 soal, kunci urut benar), regresi template `1. B` (2 soal), header satu-baris, tabel 2 kolom, dan campuran format.
+
 ## 1. Crash simpan soal manual (guru.html)
 
 **Triage:** Saat migrasi `kelas`→`jenjang`, input `mTopik` dihapus dari HTML tetapi `simpanSoalManual` masih membaca `document.getElementById("mTopik").value` → `null.value` crash. `btnResetForm` juga kehilangan listener (handler `onclick` global dihapus).
