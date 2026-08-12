@@ -60,8 +60,12 @@ dan `apps-script/Code.gs` `route_()` (backend).
 
 ## Format soal (.docx)
 
-Soal bernomor (`1.`, `2.`, ...), opsi `A.`–`E.`, dan bagian **KUNCI JAWABAN** di akhir:
+Soal bernomor (`1.`, `2.`, ...), opsi `A.`–`E.`, dan bagian **KUNCI JAWABAN** di akhir.
+Baris `KODE SOAL` dan `JENJANG` (SD/SMP/SMA/SMK) di awal dokumen menjadi identitas satu paket:
 ```
+KODE SOAL: M-2026-001
+JENJANG: SMA
+
 1. Hitunglah ...
 A. ...
 B. ...

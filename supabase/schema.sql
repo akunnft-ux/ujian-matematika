@@ -32,6 +32,7 @@ create table if not exists public.users (
 create table if not exists public.soal_bank (
   id         text primary key,
   mapel      text not null default '',
+  jenjang    text not null default '',
   kelas      text not null default '',
   topik      text not null default '',
   kode       text not null default '',
@@ -113,6 +114,7 @@ create table if not exists public.hasil (
 alter table public.hasil add column if not exists kode_ujian text not null default '';
 alter table public.hasil add column if not exists kelas text not null default '';
 alter table public.sesi add column if not exists mulai_ts timestamptz;
+alter table public.soal_bank add column if not exists jenjang text not null default '';
 
 -- Dedup data lama sebelum index unik dibuat (keep baris terbaru per kunci)
 delete from public.jawaban a using public.jawaban b
@@ -301,7 +303,7 @@ declare
 begin
   v_role := coalesce(public.sesi_role(p_payload->>'session_id'), 'anon');
   select coalesce(jsonb_agg(jsonb_build_object(
-           'id', s.id, 'mapel', s.mapel, 'kelas', s.kelas, 'topik', s.topik, 'kode', s.kode,
+           'id', s.id, 'mapel', s.mapel, 'jenjang', s.jenjang, 'kelas', s.kelas, 'topik', s.topik, 'kode', s.kode,
            'blocks', s.blocks, 'opsi', s.opsi,
            'kunci', case when v_role in ('guru','admin') then s.kunci else null end,
            'pembahasan', case when v_role in ('guru','admin') then s.pembahasan else null end,
@@ -334,14 +336,14 @@ begin
     return json_build_object('ok', false, 'error', 'Soal tidak valid (blocks kosong)');
   end if;
   v_id := coalesce(nullif(v_soal->>'id', ''), 'S-' || to_hex((floor(random() * 900000) + 100000)::bigint));
-  insert into public.soal_bank (id, mapel, kelas, topik, kode, blocks, opsi, kunci, pembahasan, status, uploader, created)
+  insert into public.soal_bank (id, mapel, jenjang, kelas, topik, kode, blocks, opsi, kunci, pembahasan, status, uploader, created)
   values (v_id,
-          coalesce(v_soal->>'mapel', ''), coalesce(v_soal->>'kelas', ''), coalesce(v_soal->>'topik', ''),
+          coalesce(v_soal->>'mapel', ''), coalesce(v_soal->>'jenjang', ''), coalesce(v_soal->>'kelas', ''), coalesce(v_soal->>'topik', ''),
           coalesce(v_soal->>'kode', ''), coalesce(v_soal->'blocks', '[]'::jsonb), coalesce(v_soal->'opsi', '[]'::jsonb),
           coalesce(v_soal->>'kunci', ''), coalesce(v_soal->>'pembahasan', ''), coalesce(v_soal->>'status', 'draft'),
           coalesce(v_soal->>'uploader', ''), now())
   on conflict (id) do update set
-    mapel = excluded.mapel, kelas = excluded.kelas, topik = excluded.topik, kode = excluded.kode,
+    mapel = excluded.mapel, jenjang = excluded.jenjang, kelas = excluded.kelas, topik = excluded.topik, kode = excluded.kode,
     blocks = excluded.blocks, opsi = excluded.opsi, kunci = excluded.kunci,
     pembahasan = excluded.pembahasan, status = excluded.status, uploader = excluded.uploader;
   return json_build_object('ok', true, 'data', json_build_object('id', v_id));

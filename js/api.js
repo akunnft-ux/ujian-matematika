@@ -67,6 +67,7 @@
         id: "S-001",
         kode: "M-2026-001",
         mapel: "Matematika",
+        jenjang: "SMA",
         kelas: "XII IPA",
         topik: "Kalkulus",
         blocks: [
@@ -84,6 +85,7 @@
         id: "S-002",
         kode: "M-2026-001",
         mapel: "Matematika",
+        jenjang: "SMA",
         kelas: "XII IPA",
         topik: "Integral",
         blocks: [

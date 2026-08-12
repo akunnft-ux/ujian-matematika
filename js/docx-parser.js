@@ -103,6 +103,7 @@
     var diKunci = false;
     var kunciLines = [];
     var kode = "";
+    var jenjang = "";
 
     function startQuestion(nomor) {
       current = { nomor: nomor, blocks: [], opsi: [], line: null };
@@ -112,6 +113,8 @@
     lines.forEach(function (l) {
       var mKode = l.text.match(/^\s*KODE\s*SOAL\s*[:]\s*(.+)\s*$/i);
       if (mKode) { kode = mKode[1].trim(); return; }
+      var mJenjang = l.text.match(/^\s*JENJANG\s*[:]\s*(.+)\s*$/i);
+      if (mJenjang) { jenjang = mJenjang[1].trim(); return; }
       if (/^\s*KUNCI\s*JAWABAN\s*[:]*\s*$/i.test(l.text)) { diKunci = true; return; }
       if (diKunci) { if (l.text.trim()) kunciLines.push(l.text); return; }
 
@@ -140,8 +143,8 @@
       if (current) pushTextToCurrent(current, l.text);
     });
 
-    // terapkan kode soal ke semua soal dalam paket
-    soal.forEach(function (s) { s.kode = kode; });
+    // terapkan kode soal & jenjang ke semua soal dalam paket
+    soal.forEach(function (s) { s.kode = kode; s.jenjang = jenjang; });
 
     // apply kunci ke soal
     kunciLines.forEach(function (kl) {
