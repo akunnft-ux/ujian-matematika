@@ -247,6 +247,12 @@
     btnLagi: document.getElementById("btnLagi")
   };
 
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   /* ===== LOGIN → KONFIRMASI DATA + TOKEN ===== */
   el.btnLogin.addEventListener("click", doLogin);
   el.username.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
@@ -276,10 +282,10 @@
       state.ujian = res.data.ujian || {};
       state.kodeLogin = kode;
       el.dataSiswa.innerHTML =
-        '<div class="flex" style="justify-content:space-between"><span class="muted">Nama</span><b>' + (state.siswa.nama || "-") + '</b></div>' +
-        '<div class="flex" style="justify-content:space-between"><span class="muted">NIS / Nomor</span><b>' + (state.siswa.nis || "-") + '</b></div>' +
-        '<div class="flex" style="justify-content:space-between"><span class="muted">Kelas</span><b>' + (state.siswa.kelas || "-") + '</b></div>' +
-        '<div class="flex" style="justify-content:space-between"><span class="muted">Ujian</span><b>' + (state.ujian.nama || kode) + '</b></div>';
+        '<div class="flex" style="justify-content:space-between"><span class="muted">Nama</span><b>' + esc(state.siswa.nama) + '</b></div>' +
+        '<div class="flex" style="justify-content:space-between"><span class="muted">NIS / Nomor</span><b>' + esc(state.siswa.nis) + '</b></div>' +
+        '<div class="flex" style="justify-content:space-between"><span class="muted">Kelas</span><b>' + esc(state.siswa.kelas) + '</b></div>' +
+        '<div class="flex" style="justify-content:space-between"><span class="muted">Ujian</span><b>' + esc(state.ujian.nama || kode) + '</b></div>';
       el.screenLogin.classList.add("hidden");
       el.screenConfirm.classList.remove("hidden");
       el.mulaiMsg.textContent = "";
@@ -333,7 +339,10 @@
 
         // resume pasca-reset: pulihkan jawaban tersimpan & sisa waktu dari server
         (state.jawabanLama || []).forEach(function (j) {
-          if (byId[j.soalId]) state.jawaban[j.soalId] = { pilihan: j.jawaban || "", ragu: false };
+          if (byId[j.soalId]) {
+            state.jawaban[j.soalId] = { pilihan: j.jawaban || "", ragu: false };
+            state.terkirim[j.soalId] = j.jawaban || "";
+          }
         });
         state.waktuSisa = state.sisaDetik != null
           ? state.sisaDetik
@@ -342,7 +351,7 @@
         var nama = state.siswa.nama || state.siswa.nis || "Siswa";
         el.examTitle.textContent = (ujian && ujian.nama) || "Ujian Tes Kompetensi Akademik";
         el.examInfo.textContent = nama + " · " + (state.siswa.kelas || "");
-        el.userbox.innerHTML = '<i class="fa-solid fa-user"></i> ' + nama;
+        el.userbox.innerHTML = '<i class="fa-solid fa-user"></i> ' + esc(nama);
         el.screenConfirm.classList.add("hidden");
         el.screenExam.classList.remove("hidden");
         tampilkanSoal();
@@ -426,9 +435,9 @@
     var s = soalSaatIni();
     var old = state.jawaban[s.id];
     state.jawaban[s.id] = { pilihan: label, ragu: !!(old && old.ragu) };
-    // kirim jawaban ke server (1x per lock — disini setiap pilihan di-lock)
-    if (!state.terkirim[s.id]) {
-      state.terkirim[s.id] = true;
+    // kirim jawaban ke server (hanya saat pilihan berubah; idempoten di server)
+    if (state.terkirim[s.id] !== label) {
+      state.terkirim[s.id] = label;
       AppAPI.kirimJawaban({
         username: state.siswa.username,
         nis: state.siswa.nis,
@@ -485,6 +494,8 @@
   /* ===== TIMER ===== */
   function startTimer() {
     clearInterval(state.timerInt);
+    el.timeText.textContent = fmt(state.waktuSisa);
+    el.timer.classList.toggle("danger", state.waktuSisa < 300);
     state.timerInt = setInterval(function () {
       state.waktuSisa--;
       if (state.waktuSisa <= 0) {
@@ -533,7 +544,9 @@
       tampilkanHasil(res.data);
     }).catch(function (err) {
       alert("Gagal mengumpulkan: " + err.message + " — coba lagi.");
-      startTimer();
+      // saat timeout (waktu sudah habis) jangan restart timer (mencegah loop);
+      // submit sudah antre & akan terkirim pada muat ulang/resume berikutnya.
+      if (state.waktuSisa > 0) startTimer();
     });
   }
 

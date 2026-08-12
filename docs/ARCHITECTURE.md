@@ -44,8 +44,8 @@ KaTeX MathText, timer, navigasi soal).
 | Tab | Kolom |
 |---|---|
 | Users | username, passHash, role, aktif |
-| SoalBank | id, mapel, jenjang, kelas, topik, kode, blocksJson, opsiJson, kunci, pembahasan, status, uploader, created |
-| Ujian | id, nama, kode, mapel, kelas, durasiMenit, soalIdsJson, status, token, created |
+| SoalBank | id, mapel, jenjang, topik, kode, blocksJson, opsiJson, kunci, pembahasan, status, uploader, created |
+| Ujian | id, nama, kode, mapel, jenjang, durasiMenit, soalIdsJson, status, token, created |
 | SoalUjian | ujianId, soalId, urutan |
 | KodeUjian | username, password, nis, nama, kelas, ujianId, status |
 | Sesi | username, nis, status, login_ts, fingerprint |
@@ -78,7 +78,6 @@ KaTeX MathText, timer, navigasi soal).
   "id": "S-xxx",
   "mapel": "Matematika",
   "jenjang": "SMA",
-  "kelas": "XII IPA",
   "topik": "Kalkulus",
   "blocks": [
     { "type": "text",  "value": "Diketahui fungsi " },

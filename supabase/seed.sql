@@ -11,15 +11,15 @@ values
 on conflict (username) do nothing;
 
 -- Bank soal contoh (2 soal)
-insert into public.soal_bank (id, mapel, jenjang, kelas, topik, kode, blocks, opsi, kunci, pembahasan, status, uploader)
+insert into public.soal_bank (id, mapel, jenjang, topik, kode, blocks, opsi, kunci, pembahasan, status, uploader)
 values
-  ('S-001', 'Matematika', 'SMA', 'XII IPA', 'Kalkulus', 'M-2026-001',
+  ('S-001', 'Matematika', 'SMA', 'Kalkulus', 'M-2026-001',
    '[{"type":"text","value":"Diketahui fungsi "},{"type":"latex","value":"f(x)=2x^3-9x^2+12x+5"},{"type":"text","value":". Nilai stasioner minimumnya adalah ..."}]'::jsonb,
    '["$5$","$8$","$9$","$10$","$14$"]'::jsonb,
    'C',
    'f''(x)=6x^2-18x+12, titik stasioner x=1 dan x=2; f(2)=9 minimum lokal.',
    'aktif', 'guru'),
-  ('S-002', 'Matematika', 'SMA', 'XII IPA', 'Integral', 'M-2026-001',
+  ('S-002', 'Matematika', 'SMA', 'Integral', 'M-2026-001',
    '[{"type":"text","value":"Nilai dari "},{"type":"latex","value":"\\int_{0}^{\\pi/2} \\sin^2(x)\\cos(x)\\,dx"},{"type":"text","value":" adalah ..."}]'::jsonb,
    '["$\\frac{1}{6}$","$\\frac{1}{4}$","$\\frac{1}{3}$","$\\frac{1}{2}$","$1$"]'::jsonb,
    'C',
@@ -28,8 +28,8 @@ values
 on conflict (id) do nothing;
 
 -- Ujian demo EXM-2026-001 (status aktif + token TKN-DEMO)
-insert into public.ujian (id, nama, kode, mapel, kelas, durasi_menit, soal_ids, status, token)
-values ('U-001', 'Ujian Matematika XII IPA', 'EXM-2026-001', 'Matematika', 'XII IPA', 60,
+insert into public.ujian (id, nama, kode, mapel, jenjang, durasi_menit, soal_ids, status, token)
+values ('U-001', 'Ujian Matematika XII IPA', 'EXM-2026-001', 'Matematika', 'SMA', 60,
         '["S-001","S-002"]'::jsonb, 'aktif', 'TKN-DEMO')
 on conflict (kode) do nothing;
 

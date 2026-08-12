@@ -118,7 +118,7 @@
 
   function masukDashboard(data) {
     AppSession.save({ role: data.role, username: data.username, sessionId: data.sessionId });
-    document.getElementById("userInfo").innerHTML = '<i class="fa-solid fa-user-shield"></i> ' + data.username;
+    document.getElementById("userInfo").innerHTML = '<i class="fa-solid fa-user-shield"></i> ' + esc(data.username);
     userbox.style.display = "";
     wrapLogin.classList.add("hidden");
     wrapDash.classList.remove("hidden");
@@ -178,7 +178,7 @@
       box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
         sesi.map(function (s) {
           var st = infoStatusSiswa(s.status);
-          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
+          return "<tr><td>" + esc(s.nis) + "</td><td>" + esc(s.username) + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     });
   }
@@ -197,16 +197,22 @@
           var st = infoStatusSiswa(s.status);
           var btn;
           if (s.status === "ACTIVE") {
-            btn = "<button class='btn btn-sm btn-outline' onclick='window.__resetLogin(\"" + s.username + "\")'>Reset Login</button>";
+            btn = '<button class="btn btn-sm btn-outline" data-reset-username="' + esc(s.username) + '">Reset Login</button>';
           } else if (s.status === "SELESAI") {
             btn = "<span class='muted' style='font-size:12px' title='Siswa sudah mengumpulkan ujian; hasil tidak bisa dibatalkan'>Terlindungi</span>";
           } else {
             btn = "";
           }
-          return "<tr><td>" + s.nis + "</td><td>" + s.username + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td>" + btn + "</td></tr>";
+          return "<tr><td>" + esc(s.nis) + "</td><td>" + esc(s.username) + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td>" + btn + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     });
   }
+
+  document.getElementById("siswaBox").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-reset-username]");
+    if (!b) return;
+    window.__resetLogin(b.dataset.resetUsername);
+  });
 
   window.__resetLogin = function (username) {
     var s = (__sesiRoster || []).find(function (x) { return x.username === username; });
@@ -229,23 +235,30 @@
        var ujian = res.data || [];
        var box = document.getElementById("ujianBox");
        if (!ujian.length) { box.innerHTML = '<div class="card muted center">Belum ada ujian dibuat guru.</div>'; return; }
-       box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Status</th><th>Token</th><th>Aksi</th></tr></thead><tbody>" +
+       box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Jenjang</th><th>Status</th><th>Token</th><th>Aksi</th></tr></thead><tbody>" +
          ujian.map(function (u) {
            var badge = u.status === "aktif" ? "badge-green" : "badge-slate";
            var label = u.status === "aktif" ? "Aktif" : "Draft";
            var btn;
            if (u.status === "aktif") {
-             btn = "<button class='btn btn-sm btn-success' onclick='window.__selesaiUjian(\"" + u.id + "\")'>Selesai</button>";
+             btn = '<button class="btn btn-sm btn-success" data-selesai-ujian="' + esc(u.id) + '">Selesai</button>';
            } else {
-             btn = "<button class='btn btn-sm' onclick='window.__aktifkanUjian(\"" + u.id + "\")'>Aktifkan &amp; Generate Token</button>";
+             btn = '<button class="btn btn-sm" data-aktifkan-ujian="' + esc(u.id) + '">Aktifkan &amp; Generate Token</button>';
            }
            var token = u.status === "aktif" && u.token
-             ? "<code style='background:#f1f5f9;padding:2px 8px;border-radius:6px;font-weight:700;letter-spacing:1px'>" + u.token + "</code>"
+             ? "<code style='background:#f1f5f9;padding:2px 8px;border-radius:6px;font-weight:700;letter-spacing:1px'>" + esc(u.token) + "</code>"
              : "<span class='muted'>—</span>";
-           return "<tr><td>" + u.nama + "</td><td><code>" + u.kode + "</code></td><td>" + u.kelas + "</td><td><span class='badge " + badge + "'>" + label + "</span></td><td>" + token + "</td><td>" + btn + "</td></tr>";
+           return "<tr><td>" + esc(u.nama) + "</td><td><code>" + esc(u.kode) + "</code></td><td>" + esc(u.jenjang) + "</td><td><span class='badge " + badge + "'>" + label + "</span></td><td>" + token + "</td><td>" + btn + "</td></tr>";
          }).join("") + "</tbody></table></div>";
     });
   }
+
+  document.getElementById("ujianBox").addEventListener("click", function (e) {
+    var a = e.target.closest("button[data-aktifkan-ujian]");
+    if (a) { window.__aktifkanUjian(a.dataset.aktifkanUjian); return; }
+    var s = e.target.closest("button[data-selesai-ujian]");
+    if (s) { window.__selesaiUjian(s.dataset.selesaiUjian); return; }
+  });
 
   window.__aktifkanUjian = function (id) {
     AppAPI.call("aktifkan-ujian", { id: id }).then(function (res) {
@@ -288,13 +301,18 @@
       if (!list.length) { box.innerHTML = '<div class="muted">Belum ada akun guru.</div>'; return; }
       box.innerHTML = "<table class='data'><thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Aksi</th></tr></thead><tbody>" +
         list.map(function (u) {
-          var hapus = "<button class='btn btn-sm btn-danger' onclick='window.__hapusUser(\"" + esc(u.username) + "\")'>Hapus</button>";
+          var hapus = "<button class='btn btn-sm btn-danger' data-hapus-user='" + esc(u.username) + "'>Hapus</button>";
           return "<tr><td>" + esc(u.username) + "</td><td>" + esc(u.role) + "</td><td><span class='badge " + (u.aktif ? "badge-green" : "badge-red") + "'>" + (u.aktif ? "aktif" : "nonaktif") + "</span></td><td>" + hapus + "</td></tr>";
         }).join("") + "</tbody></table>";
     }).catch(function (err) {
-      document.getElementById("userList").innerHTML = '<div class="muted">' + err.message + '</div>';
+      document.getElementById("userList").innerHTML = '<div class="muted">' + esc(err.message) + '</div>';
     });
   }
+
+  document.getElementById("userList").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-hapus-user]");
+    if (b) window.__hapusUser(b.dataset.hapusUser);
+  });
 
   window.__hapusUser = function (username) {
     if (username === "admin") { toast("Akun admin utama tidak bisa dihapus"); return; }
@@ -320,9 +338,9 @@
     var kodeSet = [...new Set(hasilData.map(function (h) { return h.kode_ujian; }))].filter(Boolean);
     var kelasSet = [...new Set(hasilData.map(function (h) { return h.kelas; }))].filter(Boolean);
     document.getElementById("hfKode").innerHTML = '<option value="">Semua kode ujian</option>' +
-      kodeSet.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+      kodeSet.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
     document.getElementById("hfKelas").innerHTML = '<option value="">Semua kelas</option>' +
-      kelasSet.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+      kelasSet.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
   }
 
   function filterHasil() {
@@ -349,7 +367,7 @@
     }
     box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Kelas</th><th>Kode Ujian</th><th>Benar</th><th>Total</th><th>Nilai</th><th>Waktu</th></tr></thead><tbody>" +
       list.map(function (h) {
-        return "<tr><td>" + h.nama + "</td><td>" + h.nis + "</td><td>" + (h.kelas || "-") + "</td><td>" + (h.kode_ujian || "-") + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
+        return "<tr><td>" + esc(h.nama) + "</td><td>" + esc(h.nis) + "</td><td>" + esc(h.kelas || "-") + "</td><td>" + esc(h.kode_ujian || "-") + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
       }).join("") + "</tbody></table>";
   }
 

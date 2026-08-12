@@ -33,7 +33,6 @@ create table if not exists public.soal_bank (
   id         text primary key,
   mapel      text not null default '',
   jenjang    text not null default '',
-  kelas      text not null default '',
   topik      text not null default '',
   kode       text not null default '',
   blocks     jsonb not null default '[]'::jsonb,
@@ -51,7 +50,7 @@ create table if not exists public.ujian (
   nama         text not null,
   kode         text not null unique,
   mapel        text not null default '',
-  kelas        text not null default '',
+  jenjang      text not null default '',
   durasi_menit integer not null default 60,
   soal_ids     jsonb not null default '[]'::jsonb,
   status       text not null default 'draft',
@@ -76,7 +75,8 @@ create table if not exists public.sesi (
   nis         text not null default '',
   status      text not null default 'INACTIVE',
   login_ts    timestamptz not null default now(),
-  fingerprint text not null default ''
+  fingerprint text not null default '',
+  constraint sesi_status_check check (status in ('INACTIVE','ACTIVE','SELESAI'))
 );
 
 -- Token sesi login (siswa & staf) untuk otentikasi request
@@ -115,6 +115,9 @@ alter table public.hasil add column if not exists kode_ujian text not null defau
 alter table public.hasil add column if not exists kelas text not null default '';
 alter table public.sesi add column if not exists mulai_ts timestamptz;
 alter table public.soal_bank add column if not exists jenjang text not null default '';
+alter table public.soal_bank drop column if exists kelas;
+alter table public.ujian drop column if exists kelas;
+alter table public.ujian add column if not exists jenjang text not null default '';
 
 -- Dedup data lama sebelum index unik dibuat (keep baris terbaru per kunci)
 delete from public.jawaban a using public.jawaban b
@@ -303,7 +306,7 @@ declare
 begin
   v_role := coalesce(public.sesi_role(p_payload->>'session_id'), 'anon');
   select coalesce(jsonb_agg(jsonb_build_object(
-           'id', s.id, 'mapel', s.mapel, 'jenjang', s.jenjang, 'kelas', s.kelas, 'topik', s.topik, 'kode', s.kode,
+           'id', s.id, 'mapel', s.mapel, 'jenjang', s.jenjang, 'topik', s.topik, 'kode', s.kode,
            'blocks', s.blocks, 'opsi', s.opsi,
            'kunci', case when v_role in ('guru','admin') then s.kunci else null end,
            'pembahasan', case when v_role in ('guru','admin') then s.pembahasan else null end,
@@ -336,14 +339,14 @@ begin
     return json_build_object('ok', false, 'error', 'Soal tidak valid (blocks kosong)');
   end if;
   v_id := coalesce(nullif(v_soal->>'id', ''), 'S-' || to_hex((floor(random() * 900000) + 100000)::bigint));
-  insert into public.soal_bank (id, mapel, jenjang, kelas, topik, kode, blocks, opsi, kunci, pembahasan, status, uploader, created)
+  insert into public.soal_bank (id, mapel, jenjang, topik, kode, blocks, opsi, kunci, pembahasan, status, uploader, created)
   values (v_id,
-          coalesce(v_soal->>'mapel', ''), coalesce(v_soal->>'jenjang', ''), coalesce(v_soal->>'kelas', ''), coalesce(v_soal->>'topik', ''),
+          coalesce(v_soal->>'mapel', ''), coalesce(v_soal->>'jenjang', ''), coalesce(v_soal->>'topik', ''),
           coalesce(v_soal->>'kode', ''), coalesce(v_soal->'blocks', '[]'::jsonb), coalesce(v_soal->'opsi', '[]'::jsonb),
           coalesce(v_soal->>'kunci', ''), coalesce(v_soal->>'pembahasan', ''), coalesce(v_soal->>'status', 'draft'),
           coalesce(v_soal->>'uploader', ''), now())
   on conflict (id) do update set
-    mapel = excluded.mapel, jenjang = excluded.jenjang, kelas = excluded.kelas, topik = excluded.topik, kode = excluded.kode,
+    mapel = excluded.mapel, jenjang = excluded.jenjang, topik = excluded.topik, kode = excluded.kode,
     blocks = excluded.blocks, opsi = excluded.opsi, kunci = excluded.kunci,
     pembahasan = excluded.pembahasan, status = excluded.status, uploader = excluded.uploader;
   return json_build_object('ok', true, 'data', json_build_object('id', v_id));
@@ -415,7 +418,7 @@ declare
 begin
   v_role := coalesce(public.sesi_role(p_payload->>'session_id'), 'anon');
   select coalesce(jsonb_agg(jsonb_build_object(
-           'id', u.id, 'nama', u.nama, 'kode', u.kode, 'mapel', u.mapel, 'kelas', u.kelas,
+           'id', u.id, 'nama', u.nama, 'kode', u.kode, 'mapel', u.mapel, 'jenjang', u.jenjang,
            'durasiMenit', u.durasi_menit, 'soalIds', u.soal_ids, 'status', u.status,
            'token', case when v_role in ('guru','admin') then u.token else null end
          ) order by u.created), '[]'::jsonb)
@@ -447,10 +450,13 @@ begin
   if v_kode = '' then
     v_kode := 'EXM-' || to_char(now(), 'YYYYMM') || '-' || lpad((floor(random()*100000))::int::text, 5, '0');
   end if;
-  insert into public.ujian (id, nama, kode, mapel, kelas, durasi_menit, soal_ids, status, token, created)
+  if exists (select 1 from public.ujian where kode = v_kode) then
+    return json_build_object('ok', false, 'error', 'Kode ujian sudah dipakai. Gunakan kode lain.');
+  end if;
+  insert into public.ujian (id, nama, kode, mapel, jenjang, durasi_menit, soal_ids, status, token, created)
   values (v_id,
           coalesce(v_ujian->>'nama', 'Ujian'), v_kode,
-          coalesce(v_ujian->>'mapel', ''), coalesce(v_ujian->>'kelas', ''),
+          coalesce(v_ujian->>'mapel', ''), coalesce(v_ujian->>'jenjang', ''),
           coalesce((v_ujian->>'durasiMenit')::int, 60),
           coalesce(v_ujian->'soalIds', '[]'::jsonb), 'draft', '', now());
   return json_build_object('ok', true, 'data', json_build_object('id', v_id, 'kode', v_kode, 'status', 'draft'));
@@ -534,10 +540,18 @@ language plpgsql security definer set search_path = public, extensions
 as $$
 declare
   v_role text;
+  v_sess_user text;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null then
     return json_build_object('ok', false, 'error', 'Sesi tidak valid.');
+  end if;
+  -- Anti spoofing: sesi siswa hanya boleh menulis jawaban untuk dirinya sendiri.
+  if v_role = 'siswa' then
+    select username into v_sess_user from public.sessions where id = p_payload->>'session_id';
+    if v_sess_user is distinct from coalesce(p_payload->>'username', '') then
+      return json_build_object('ok', false, 'error', 'Sesi tidak sesuai akun.');
+    end if;
   end if;
   if coalesce(p_payload->>'soalId', '') = '' then
     return json_build_object('ok', false, 'error', 'soalId kosong');
@@ -568,6 +582,7 @@ declare
   v_username text;
   v_kode_ujian text;
   v_kelas text;
+  v_sess_user text;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null then
@@ -576,6 +591,17 @@ begin
   v_username := coalesce(p_payload->>'username', '');
   v_kode_ujian := coalesce(p_payload->>'kode', '');
   v_kelas := coalesce(p_payload->>'kelas', '');
+  -- Anti spoofing + anti oracle: sesi siswa hanya boleh mengumpulkan untuk
+  -- dirinya sendiri, dan hanya saat sesi masih ACTIVE (belum pernah submit).
+  if v_role = 'siswa' then
+    select username into v_sess_user from public.sessions where id = p_payload->>'session_id';
+    if v_sess_user is distinct from v_username then
+      return json_build_object('ok', false, 'error', 'Sesi tidak sesuai akun.');
+    end if;
+    if not exists (select 1 from public.sesi where username = v_username and status = 'ACTIVE') then
+      return json_build_object('ok', false, 'error', 'Sesi tidak aktif — jawaban sudah dikumpulkan atau belum mulai.');
+    end if;
+  end if;
   select coalesce(ujian_id, ''), coalesce(kelas, '') into v_kode_ujian, v_kelas
     from public.kode_ujian where username = v_username;
   if coalesce(v_kode_ujian, '') = '' then v_kode_ujian := coalesce(p_payload->>'kode', ''); end if;
@@ -665,7 +691,7 @@ begin
            jsonb_build_object(
              'username', h.username, 'nis', h.nis, 'nama', h.nama,
              'kode_ujian', coalesce(nullif(h.kode_ujian, ''), nullif(u.kode, ''), nullif(ku.ujian_id, ''), ''),
-             'kelas', coalesce(nullif(h.kelas, ''), nullif(ku.kelas, ''), nullif(u.kelas, ''), ''),
+             'kelas', coalesce(nullif(h.kelas, ''), nullif(ku.kelas, ''), ''),
              'benar', h.benar, 'total', h.total, 'nilai', h.nilai, 'ts', h.ts
            ) order by h.ts desc), '[]'::jsonb)
     into v_out
@@ -677,7 +703,7 @@ begin
      limit 1
   ) ku on true
   left join lateral (
-    select u.kode, u.kelas
+    select u.kode
       from public.ujian u
      where u.kode = ku.ujian_id or u.id = ku.ujian_id
         or u.kode = h.kode_ujian
@@ -699,7 +725,7 @@ begin
     return json_build_object('ok', false, 'error', 'Khusus admin.');
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
-           'username', u.username, 'pass_hash', u.pass_hash, 'role', u.role, 'aktif', u.aktif) order by u.username), '[]'::jsonb)
+           'username', u.username, 'role', u.role, 'aktif', u.aktif) order by u.username), '[]'::jsonb)
     into v_out from public.users u;
   return json_build_object('ok', true, 'data', v_out);
 end $$;

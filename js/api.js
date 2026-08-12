@@ -42,7 +42,7 @@
     if (!db.ujian) {
       db.ujian = [{
         id: "U-001", nama: "Ujian Matematika XII IPA", kode: "EXM-2026-001",
-        mapel: "Matematika", kelas: "XII IPA", durasiMenit: 60,
+        mapel: "Matematika", jenjang: "SMA", durasiMenit: 60,
         soalIds: ["S-001", "S-002"], status: "aktif", token: "TKN-DEMO"
       }];
       changed = true;
@@ -68,7 +68,6 @@
         kode: "M-2026-001",
         mapel: "Matematika",
         jenjang: "SMA",
-        kelas: "XII IPA",
         topik: "Kalkulus",
         blocks: [
           { type: "text", value: "Diketahui fungsi " },
@@ -86,7 +85,6 @@
         kode: "M-2026-001",
         mapel: "Matematika",
         jenjang: "SMA",
-        kelas: "XII IPA",
         topik: "Integral",
         blocks: [
           { type: "text", value: "Nilai dari " },
@@ -224,6 +222,10 @@
   }
   function mockBuatUjian(ujian) {
     var db = loadMock();
+    var kode = String(ujian && ujian.kode || "").trim();
+    if (kode && (db.ujian || []).some(function (u) { return u.kode === kode; })) {
+      return { ok: false, error: "Kode ujian sudah dipakai. Gunakan kode lain." };
+    }
     if (!ujian.id) ujian.id = "U-" + (Date.now().toString(36));
     ujian.status = "draft";
     ujian.token = "";
@@ -364,6 +366,9 @@
     });
     if (idx >= 0) db.hasil[idx] = row; else db.hasil.push(row);
     var sesi = (db.sesi || []).find(function (s) { return s.username === payload.username; });
+    if (sesi && sesi.status === "SELESAI") {
+      return { ok: false, error: "Sesi tidak aktif — jawaban sudah dikumpulkan." };
+    }
     if (sesi) sesi.status = "SELESAI";
     saveMock(db);
     return { ok: true, data: { benar: hitung, total: total, nilai: nilai } };

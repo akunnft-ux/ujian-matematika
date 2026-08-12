@@ -59,13 +59,10 @@
         <div class="flex" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
           <div class="input-icon-wrap" style="max-width:260px; flex:1 1 200px; min-width:160px;">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input id="fCari" class="input" placeholder="Cari kode / topik / kelas / jenjang / isi soal...">
+            <input id="fCari" class="input" placeholder="Cari kode / topik / jenjang / isi soal...">
           </div>
           <select id="fJenjang" class="input" style="max-width:150px">
             <option value="">Semua jenjang</option>
-          </select>
-          <select id="fKelas" class="input" style="max-width:150px">
-            <option value="">Semua kelas</option>
           </select>
           <select id="fStatus" class="input" style="max-width:150px">
             <option value="">Semua status</option>
@@ -121,7 +118,13 @@
         <div class="grid grid-3">
           <div class="field"><label>Kode Soal</label><input id="mKode" class="input" placeholder="M-2026-001"></div>
           <div class="field"><label>Mapel</label><input id="mMapel" class="input" placeholder="Mis. Matematika / Fisika"></div>
-          <div class="field"><label>Kelas</label><input id="mKelas" class="input" placeholder="XII IPA"></div>
+          <div class="field"><label>Topik</label><input id="mTopik" class="input" placeholder="Mis. Kalkulus / Integral"></div>
+          <div class="field"><label>Jenjang</label>
+            <select id="mJenjang" class="input" style="max-width:150px">
+              <option value="">—</option>
+              <option>SD</option><option>SMP</option><option>SMA</option><option>SMK</option>
+            </select>
+          </div>
         </div>
         <div class="field"><label>Isi Soal (blok)</label><div id="mBlocks"></div></div>
         <div class="field"><label>Opsi Jawaban</label>
@@ -147,7 +150,12 @@
           <div class="field"><label>Nama Ujian</label><input id="uNama" class="input" placeholder="UTS XII"></div>
           <div class="field"><label>Kode Ujian</label><input id="uKode" class="input" placeholder="EXM-2026-001"></div>
           <div class="field"><label>Mapel</label><input id="uMapel" class="input" placeholder="Mis. Matematika / Fisika"></div>
-          <div class="field"><label>Kelas</label><input id="uKelas" class="input" placeholder="XII IPA"></div>
+          <div class="field"><label>Jenjang</label>
+            <select id="uJenjang" class="input" style="max-width:150px">
+              <option value="">—</option>
+              <option>SD</option><option>SMP</option><option>SMA</option><option>SMK</option>
+            </select>
+          </div>
           <div class="field"><label>Durasi (menit)</label><input id="uDurasi" class="input" type="number" value="60" min="5"></div>
         </div>
         <div class="field"><label>Pilih Soal dari Bank</label>
@@ -220,6 +228,12 @@
     setTimeout(function () { t.classList.remove("show"); setTimeout(function () { t.remove(); }, 300); }, 2000);
   }
 
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
   /* ===== LOGIN GURU / ADMIN ===== */
   document.getElementById("btnGuruLogin").addEventListener("click", loginGuru);
   document.getElementById("gPass").addEventListener("keydown", function (e) { if (e.key === "Enter") loginGuru(); });
@@ -246,7 +260,7 @@
 
   function masukDashboard(data) {
     AppSession.save({ role: data.role, username: data.username, sessionId: data.sessionId });
-    document.getElementById("userInfo").innerHTML = '<i class="fa-solid fa-user-shield"></i> ' + data.username;
+    document.getElementById("userInfo").innerHTML = '<i class="fa-solid fa-user-shield"></i> ' + esc(data.username);
     loginWrap.classList.add("hidden");
     dashWrap.classList.remove("hidden");
     userbox.style.display = "";
@@ -265,7 +279,6 @@
   document.getElementById("btnLogout").addEventListener("click", keluar);
 
   var bankSoal = [];
-  var bankKelas = [];
   var editorManual = null;
   var editorEdit = null;
   var editingId = null;
@@ -286,30 +299,23 @@
 
   /* ===== BANK SOAL ===== */
   function muatBankSoal() {
-    var prevKelas = document.getElementById("fKelas").value;
     var prevKode = document.getElementById("fKode").value;
     var prevJenjang = document.getElementById("fJenjang").value;
     var prevPage = bankPage;
     bankPage = 1;
     AppAPI.call("bank-soal").then(function (res) {
       bankSoal = res.data || [];
-      bankKelas = [];
-      bankSoal.forEach(function (s) { if (s.kelas && bankKelas.indexOf(s.kelas) < 0) bankKelas.push(s.kelas); });
-      var fk = document.getElementById("fKelas");
-      fk.innerHTML = '<option value="">Semua kelas</option>' +
-        bankKelas.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
-      fk.value = prevKelas;
       // populate jenjang filter (SD/SMP/SMA/SMK)
       var jenjangSet = [...new Set(bankSoal.map(function (s) { return s.jenjang; }))].filter(Boolean);
       var fJenjangSelect = document.getElementById("fJenjang");
       fJenjangSelect.innerHTML = '<option value="">Semua jenjang</option>' +
-        jenjangSet.map(function (j) { return '<option value="' + j + '">' + j + "</option>"; }).join("");
+        jenjangSet.map(function (j) { return '<option value="' + esc(j) + '">' + esc(j) + "</option>"; }).join("");
       fJenjangSelect.value = prevJenjang;
       // populate kode soal filter (satu kode mewakili satu paket)
       var kodeSet = [...new Set(bankSoal.map(function (s) { return s.kode; }))].filter(Boolean);
       var fKodeSelect = document.getElementById("fKode");
       fKodeSelect.innerHTML = '<option value="">Semua kode soal</option>' +
-        kodeSet.map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('');
+        kodeSet.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + '</option>'; }).join('');
       fKodeSelect.value = prevKode;
       bankPage = prevPage;
       renderBank();
@@ -319,18 +325,16 @@
   }
 
 function renderBank() {
-  var k = document.getElementById("fKelas").value;
   var st = document.getElementById("fStatus").value;
   var kod = document.getElementById("fKode").value;
   var jg = document.getElementById("fJenjang").value;
   var q = document.getElementById("fCari").value.trim().toLowerCase();
   var list = bankSoal.filter(function (s) {
-    if (k && s.kelas !== k) return false;
     if (st && s.status !== st) return false;
     if (kod && s.kode !== kod) return false;
     if (jg && s.jenjang !== jg) return false;
     if (q) {
-      var hay = [s.kode, s.topik, s.kelas, s.mapel, s.jenjang, s.kunci, s.uploader]
+      var hay = [s.kode, s.topik, s.mapel, s.jenjang, s.kunci, s.uploader]
         .concat((s.blocks || []).map(function (b) { return b.value; }))
         .concat(s.opsi || [])
         .join(" ").toLowerCase();
@@ -355,12 +359,11 @@ function renderBank() {
     card.innerHTML = "";
     var head = document.createElement("div");
     head.className = "flex";
-    head.innerHTML = '<span class="badge ' + (s.status === "aktif" ? "badge-green" : "badge-amber") + '">' + (s.status || "draft") + "</span>" +
-      (s.kode ? '<span class="badge badge-blue">' + s.kode + "</span>" : "") +
-      (s.jenjang ? '<span class="badge badge-slate">' + s.jenjang + "</span>" : "") +
-      (s.kelas ? '<span class="badge badge-slate">' + s.kelas + "</span>" : "") +
-      (s.topik ? '<span class="badge badge-slate">' + s.topik + "</span>" : "") +
-      '<span class="muted" style="font-size:12px">' + (s.id || "") + "</span>";
+    head.innerHTML = '<span class="badge ' + (s.status === "aktif" ? "badge-green" : "badge-amber") + '">' + esc(s.status || "draft") + "</span>" +
+      (s.kode ? '<span class="badge badge-blue">' + esc(s.kode) + "</span>" : "") +
+      (s.jenjang ? '<span class="badge badge-slate">' + esc(s.jenjang) + "</span>" : "") +
+      (s.topik ? '<span class="badge badge-slate">' + esc(s.topik) + "</span>" : "") +
+      '<span class="muted" style="font-size:12px">' + esc(s.id || "") + "</span>";
     card.appendChild(head);
     var body = document.createElement("div");
     body.className = "mt";
@@ -380,7 +383,7 @@ function renderBank() {
     card.appendChild(opsi);
     var foot = document.createElement("div");
     foot.className = "flex mt";
-    foot.innerHTML = '<span class="badge badge-blue">Kunci: ' + (s.kunci || "-") + "</span>";
+    foot.innerHTML = '<span class="badge badge-blue">Kunci: ' + esc(s.kunci || "-") + "</span>";
     var btnEdit = document.createElement("button");
     btnEdit.className = "btn btn-sm btn-outline"; btnEdit.textContent = "✏ Edit"; btnEdit.addEventListener("click", function () { bukaEdit(s.id); });
     var btnStatus = document.createElement("button");
@@ -440,7 +443,6 @@ function renderBank() {
   }
 
   function filterBerubah() { bankPage = 1; renderBank(); }
-  document.getElementById("fKelas").addEventListener("change", filterBerubah);
   document.getElementById("fStatus").addEventListener("change", filterBerubah);
   document.getElementById("fKode").addEventListener("change", filterBerubah);
   document.getElementById("fJenjang").addEventListener("change", filterBerubah);
@@ -476,7 +478,7 @@ function renderBank() {
       box.innerHTML = "";
       soal.forEach(function (s) {
         AppAPI.call("simpan-soal", { soal: {
-          mapel: "", jenjang: s.jenjang || "", kelas: "", topik: "",
+          mapel: "", jenjang: s.jenjang || "", topik: "",
           kode: s.kode || "",
           blocks: s.blocks, opsi: s.opsi, kunci: s.kunci || "",
           pembahasan: "", status: "draft", uploader: (AppSession.data() || {}).username
@@ -516,7 +518,7 @@ function renderBank() {
         }
         var info = '<div class="alert alert-success">✅ ' + res.data.total + " siswa terdaftar. Akun (username/password) siap dipakai.</div>";
         if (res.data.usernames && res.data.usernames.length) {
-          info += '<div class="mt card" style="font-size:13px"><b>Username:</b> ' + res.data.usernames.join(", ") + "</div>";
+          info += '<div class="mt card" style="font-size:13px"><b>Username:</b> ' + res.data.usernames.map(esc).join(", ") + "</div>";
         }
         document.getElementById("xlsxResult").innerHTML = info;
       });
@@ -566,7 +568,7 @@ function renderBank() {
     AppAPI.call("simpan-soal", { soal: {
       kode: document.getElementById("mKode").value.trim(),
       mapel: document.getElementById("mMapel").value.trim(),
-      kelas: document.getElementById("mKelas").value.trim(),
+      jenjang: document.getElementById("mJenjang").value.trim(),
       topik: document.getElementById("mTopik").value.trim(),
       blocks: blocks, opsi: opsi, kunci: document.getElementById("mKunci").value,
       pembahasan: document.getElementById("mPembahasan").value.trim(),
@@ -579,9 +581,11 @@ function renderBank() {
     }).catch(function (err) { toast(err.message); });
   });
 
+  document.getElementById("btnResetForm").addEventListener("click", resetForm);
+
   function resetForm() {
     document.getElementById("mKode").value = "";
-    document.getElementById("mKelas").value = ""; document.getElementById("mTopik").value = "";
+    document.getElementById("mJenjang").value = ""; document.getElementById("mTopik").value = "";
     document.getElementById("mPembahasan").value = "";
     renderOpsiInputs();
     if (editorManual) {
@@ -612,11 +616,9 @@ function renderBank() {
     fJenjang.appendChild(jsel);
     var fKode = document.createElement("div"); fKode.className = "field";
     fKode.innerHTML = "<label>Kode Soal</label>"; fKode.appendChild(mkInput("kode", s.kode || ""));
-    var fKelas = document.createElement("div"); fKelas.className = "field";
-    fKelas.innerHTML = "<label>Kelas</label>"; fKelas.appendChild(mkInput("kelas", s.kelas || ""));
     var fTopik = document.createElement("div"); fTopik.className = "field";
     fTopik.innerHTML = "<label>Topik</label>"; fTopik.appendChild(mkInput("topik", s.topik || ""));
-    body.appendChild(fMapel); body.appendChild(fJenjang); body.appendChild(fKode); body.appendChild(fKelas); body.appendChild(fTopik);
+    body.appendChild(fMapel); body.appendChild(fJenjang); body.appendChild(fKode); body.appendChild(fTopik);
     var fBlocks = document.createElement("div"); fBlocks.className = "field";
     fBlocks.innerHTML = "<label>Isi Soal (blok — hapus persamaan rusak, ganti dengan gambar/LaTeX)</label>";
     var holder = document.createElement("div"); fBlocks.appendChild(holder); body.appendChild(fBlocks);
@@ -651,7 +653,7 @@ function renderBank() {
         id: editingId, mapel: body.querySelector("#mapel").value.trim(),
         jenjang: body.querySelector("#jenjang").value.trim(),
         kode: body.querySelector("#kode").value.trim(),
-        kelas: body.querySelector("#kelas").value.trim(), topik: body.querySelector("#topik").value.trim(),
+        topik: body.querySelector("#topik").value.trim(),
         blocks: blok, opsi: opsi, kunci: ksel.value, pembahasan: body.querySelector("#pembahasan").value.trim(),
         status: s.status, uploader: s.uploader
       };
@@ -682,10 +684,10 @@ function renderBank() {
       var list = res.data || [];
       var box = document.getElementById("ujianList");
       if (!list.length) { box.innerHTML = '<div class="muted">Belum ada ujian.</div>'; return; }
-      box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Durasi</th><th>Jumlah Soal</th><th>Aksi</th></tr></thead><tbody>" +
+      box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Jenjang</th><th>Durasi</th><th>Jumlah Soal</th><th>Aksi</th></tr></thead><tbody>" +
         list.map(function (u) {
-          return "<tr><td>" + u.nama + "</td><td><b>" + u.kode + "</b></td><td>" + (u.kelas || "") + "</td><td>" + u.durasiMenit + " mnt</td><td>" + (u.soalIds || []).length + "</td>" +
-            '<td><button type="button" class="btn btn-sm btn-danger" data-hapus-ujian="' + u.id + '">Hapus</button></td></tr>';
+          return "<tr><td>" + esc(u.nama) + "</td><td><b>" + esc(u.kode) + "</b></td><td>" + esc(u.jenjang || "") + "</td><td>" + (u.durasiMenit || 0) + " mnt</td><td>" + (u.soalIds || []).length + "</td>" +
+            '<td><button type="button" class="btn btn-sm btn-danger" data-hapus-ujian="' + esc(u.id) + '">Hapus</button></td></tr>';
         }).join("") + "</tbody></table>";
     });
   }
@@ -721,7 +723,7 @@ function renderBank() {
       cb.checked = s.status === "aktif";
       var body = document.createElement("span"); body.style.flex = "1";
       var head = document.createElement("span"); head.style.display = "block"; head.style.fontSize = "12px"; head.style.color = "var(--text-soft)";
-      head.textContent = (s.kelas || "") + " · " + (s.topik || "") + " · " + s.id + " [" + s.status + "]";
+      head.textContent = (s.jenjang || "") + " · " + (s.topik || "") + " · " + s.id + " [" + s.status + "]";
       var isi = document.createElement("span"); isi.style.display = "block";
       isi.appendChild(RenderSoal.blocks(s.blocks || []));
       body.appendChild(head); body.appendChild(isi);
@@ -737,7 +739,7 @@ function renderBank() {
       nama: document.getElementById("uNama").value.trim() || "Ujian",
       kode: document.getElementById("uKode").value.trim() || "EXM-" + Date.now().toString().slice(-6),
       mapel: document.getElementById("uMapel").value.trim(),
-      kelas: document.getElementById("uKelas").value.trim(),
+      jenjang: document.getElementById("uJenjang").value.trim(),
       durasiMenit: parseInt(document.getElementById("uDurasi").value, 10) || 60,
       soalIds: ids
     };
@@ -762,9 +764,9 @@ function renderBank() {
     var kodeSet = [...new Set(hasilData.map(function (h) { return h.kode_ujian; }))].filter(Boolean);
     var kelasSet = [...new Set(hasilData.map(function (h) { return h.kelas; }))].filter(Boolean);
     document.getElementById("hfKode").innerHTML = '<option value="">Semua kode ujian</option>' +
-      kodeSet.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+      kodeSet.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
     document.getElementById("hfKelas").innerHTML = '<option value="">Semua kelas</option>' +
-      kelasSet.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+      kelasSet.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
   }
 
   function filterHasil() {
@@ -791,7 +793,7 @@ function renderBank() {
     }
     box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Kelas</th><th>Kode Ujian</th><th>Benar</th><th>Total</th><th>Nilai</th><th>Waktu</th></tr></thead><tbody>" +
       list.map(function (h) {
-        return "<tr><td>" + h.nama + "</td><td>" + h.nis + "</td><td>" + (h.kelas || "-") + "</td><td>" + (h.kode_ujian || "-") + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
+        return "<tr><td>" + esc(h.nama) + "</td><td>" + esc(h.nis) + "</td><td>" + esc(h.kelas || "-") + "</td><td>" + esc(h.kode_ujian || "-") + "</td><td>" + h.benar + "</td><td>" + h.total + "</td><td><b>" + h.nilai + "</b></td><td class='muted'>" + (h.ts ? new Date(h.ts).toLocaleString() : "") + "</td></tr>";
       }).join("") + "</tbody></table>";
   }
 
