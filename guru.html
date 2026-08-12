@@ -666,8 +666,15 @@ function renderBank() {
   function renderSoalPilihan() {
     var box = document.getElementById("uSoalList");
     box.innerHTML = "";
+    var aktifSoal = bankSoal.filter(function (s) { return s.status === "aktif"; });
     var draftCount = bankSoal.filter(function (s) { return s.status !== "aktif"; }).length;
-    bankSoal.filter(function (s) { return s.status === "aktif"; }).forEach(function (s) {
+    var info = document.createElement("div");
+    info.className = "muted";
+    info.style.fontSize = "12px";
+    info.style.marginBottom = "8px";
+    info.textContent = aktifSoal.length + " soal aktif tersedia" + (draftCount > 0 ? " · " + draftCount + " soal draft tidak tampil (aktifkan di Bank Soal)" : "");
+    box.appendChild(info);
+    aktifSoal.forEach(function (s) {
       var row = document.createElement("label");
       row.style.display = "flex"; row.style.gap = "10px"; row.style.alignItems = "flex-start";
       row.style.padding = "10px"; row.style.border = "1px solid var(--border)"; row.style.borderRadius = "8px"; row.style.cursor = "pointer";
@@ -682,14 +689,6 @@ function renderBank() {
       row.appendChild(cb); row.appendChild(body);
       box.appendChild(row);
     });
-    if (draftCount > 0) {
-      var note = document.createElement("div");
-      note.className = "muted";
-      note.style.fontSize = "12px";
-      note.style.marginTop = "8px";
-      note.textContent = draftCount + " soal berstatus draft tidak ditampilkan. Aktifkan lewat tombol status di Bank Soal.";
-      box.appendChild(note);
-    }
   }
 
   document.getElementById("btnSimpanUjian").addEventListener("click", function () {
