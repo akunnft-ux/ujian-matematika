@@ -230,6 +230,15 @@
     return { ok: true, data: ujian };
   }
   function mockGetUjian() { return { ok: true, data: (loadMock().ujian || []).slice() }; }
+  function mockHapusUjian(id) {
+    var db = loadMock();
+    var ujian = (db.ujian || []).find(function (u) { return u.id === id; });
+    if (!ujian) return { ok: false, error: "Ujian tidak ditemukan." };
+    db.ujian = (db.ujian || []).filter(function (u) { return u.id !== id; });
+    db.kodeUjian = (db.kodeUjian || []).filter(function (k) { return k.ujianId !== id && k.ujianId !== ujian.kode; });
+    saveMock(db);
+    return { ok: true };
+  }
   function mockAktifkanUjian(id) {
     var db = loadMock();
     var ujian = (db.ujian || []).find(function (u) { return u.id === id; });
@@ -369,6 +378,7 @@
       case "upload-siswa": return mockUploadSiswa(payload.rows);
       case "buat-ujian": return mockBuatUjian(payload.ujian);
       case "get-ujian": return mockGetUjian();
+      case "hapus-ujian": return mockHapusUjian(payload.id);
       case "aktifkan-ujian": return mockAktifkanUjian(payload.id);
       case "selesai-ujian": return mockSelesaiUjian(payload.id);
       case "reset-login": return mockResetLogin(payload.username);
@@ -394,6 +404,7 @@
     "upload-siswa": "rpc_upload_siswa",
     "get-ujian": "rpc_get_ujian",
     "buat-ujian": "rpc_buat_ujian",
+    "hapus-ujian": "rpc_hapus_ujian",
     "aktifkan-ujian": "rpc_aktifkan_ujian",
     "selesai-ujian": "rpc_selesai_ujian",
     "reset-login": "rpc_reset_login",

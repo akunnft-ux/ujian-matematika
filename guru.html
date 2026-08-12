@@ -656,12 +656,25 @@ function renderBank() {
       var list = res.data || [];
       var box = document.getElementById("ujianList");
       if (!list.length) { box.innerHTML = '<div class="muted">Belum ada ujian.</div>'; return; }
-      box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Durasi</th><th>Jumlah Soal</th></tr></thead><tbody>" +
+      box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Durasi</th><th>Jumlah Soal</th><th>Aksi</th></tr></thead><tbody>" +
         list.map(function (u) {
-          return "<tr><td>" + u.nama + "</td><td><b>" + u.kode + "</b></td><td>" + (u.kelas || "") + "</td><td>" + u.durasiMenit + " mnt</td><td>" + (u.soalIds || []).length + "</td></tr>";
+          return "<tr><td>" + u.nama + "</td><td><b>" + u.kode + "</b></td><td>" + (u.kelas || "") + "</td><td>" + u.durasiMenit + " mnt</td><td>" + (u.soalIds || []).length + "</td>" +
+            '<td><button type="button" class="btn btn-sm btn-danger" data-hapus-ujian="' + u.id + '">Hapus</button></td></tr>';
         }).join("") + "</tbody></table>";
     });
   }
+
+  document.getElementById("ujianList").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-hapus-ujian]");
+    if (!btn) return;
+    var id = btn.dataset.hapusUjian;
+    if (!confirm("Hapus ujian ini? Akun siswa yang terdaftar di ujian ini juga ikut terhapus.")) return;
+    AppAPI.call("hapus-ujian", { id: id }).then(function (res) {
+      if (!res.ok) { toast(res.error || "Gagal menghapus ujian"); return; }
+      toast("Ujian dihapus");
+      renderUjianList();
+    }).catch(function (err) { toast(err.message); });
+  });
 
   function renderSoalPilihan() {
     var box = document.getElementById("uSoalList");

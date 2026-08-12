@@ -454,6 +454,30 @@ begin
   return json_build_object('ok', true, 'data', json_build_object('id', v_id, 'kode', v_kode, 'status', 'draft'));
 end $$;
 
+create or replace function public.rpc_hapus_ujian(p_payload jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_role text;
+  v_ujian public.ujian%rowtype;
+begin
+  v_role := public.sesi_role(p_payload->>'session_id');
+  if v_role is null or v_role not in ('guru','admin') then
+    return json_build_object('ok', false, 'error', 'Anda harus login sebagai guru/admin.');
+  end if;
+  select * into v_ujian from public.ujian where id = p_payload->>'id';
+  if not found then return json_build_object('ok', false, 'error', 'Ujian tidak ditemukan.'); end if;
+  delete from public.sesi where username in (
+    select username from public.kode_ujian
+    where ujian_id = v_ujian.kode or ujian_id = v_ujian.id
+  );
+  delete from public.kode_ujian
+   where ujian_id = v_ujian.kode or ujian_id = v_ujian.id;
+  delete from public.ujian where id = v_ujian.id;
+  return json_build_object('ok', true, 'data', json_build_object('id', v_ujian.id));
+end $$;
+
 create or replace function public.rpc_aktifkan_ujian(p_payload jsonb)
 returns json
 language plpgsql security definer set search_path = public, extensions
