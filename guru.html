@@ -283,6 +283,9 @@
 
   /* ===== BANK SOAL ===== */
   function muatBankSoal() {
+    var prevKelas = document.getElementById("fKelas").value;
+    var prevKode = document.getElementById("fKode").value;
+    var prevPage = bankPage;
     bankPage = 1;
     AppAPI.call("bank-soal").then(function (res) {
       bankSoal = res.data || [];
@@ -291,11 +294,14 @@
       var fk = document.getElementById("fKelas");
       fk.innerHTML = '<option value="">Semua kelas</option>' +
         bankKelas.map(function (k) { return '<option value="' + k + '">' + k + "</option>"; }).join("");
+      fk.value = prevKelas;
       // populate kode soal filter (satu kode mewakili satu paket)
       var kodeSet = [...new Set(bankSoal.map(function (s) { return s.kode; }))].filter(Boolean);
       var fKodeSelect = document.getElementById("fKode");
       fKodeSelect.innerHTML = '<option value="">Semua kode soal</option>' +
         kodeSet.map(function (k) { return '<option value="' + k + '">' + k + '</option>'; }).join('');
+      fKodeSelect.value = prevKode;
+      bankPage = prevPage;
       renderBank();
       renderSoalPilihan();
       toast("Bank soal dimuat: " + bankSoal.length + " soal");
