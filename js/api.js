@@ -186,7 +186,9 @@
   function mockSimpanSoal(soal) {
     var db = loadMock();
     var arr = db.bankSoal || [];
-    if (!soal.id) { soal.id = "S-" + (Date.now().toString(36)); }
+    if (!soal.id) {
+      soal.id = "S-" + (Date.now().toString(36)) + "-" + Math.random().toString(36).slice(2, 6);
+    }
     var idx = arr.findIndex(function (s) { return s.id === soal.id; });
     if (idx >= 0) arr[idx] = soal; else arr.push(soal);
     saveMock(db);

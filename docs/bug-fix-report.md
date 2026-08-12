@@ -23,6 +23,16 @@ Tanggal: 2026-08-12 · Scope: guru.html, index.html, admin.html, supabase/schema
 
 **Verifikasi:** 10/10 pass — file asli (25 soal, kunci urut benar), regresi template `1. B` (2 soal), header satu-baris, tabel 2 kolom, dan campuran format.
 
+## 7. "Upload berhasil tapi Bank Soal kosong" — race simpan → reload
+
+**Triage:** Parse `.docx` menghasilkan 25 soal valid (blocks/opsi/kunci lengkap — terbukti via harness). `rpc_simpan_soal` hanya menolak blocks kosong; `rpc_bank_soal` mengembalikan soal draft juga; tabel `soal_bank` tanpa constraint penolak. Root cause: `prosesDocx` memicu 25 `simpan-soal` async (tidak di-await) lalu **langsung** `muatBankSoal()` → di backend supabase, fetch `bank-soal` selesai sebelum insert → "0 soal". `.catch(function(){})` menelan semua error sehingga kegagalan tidak terlihat.
+
+**Fix:**
+- `guru.html prosesDocx`: kumpulkan semua promise simpan → `Promise.all` → baru `muatBankSoal()`. Hasil per-soal diubah jadi `true`/pesan error, jumlah gagal + contoh error ditampilkan (bukan disapu bersih).
+- `js/api.js mockSimpanSoal`: id `Date.now().toString(36)` bertabrakan saat banyak simpan di-fire sinkron → tambah suffix random (paritas mock).
+
+**Verifikasi:** simulasi timing membuktikan race (bank 0 sebelum await → penuh setelah). End-to-end mock: 4/4 (25 soal tersimpan, kunci & jenjang benar). Regresi: parser kunci 10/10, mock fixes 10/10. `node --check` semua lulus.
+
 ## 1. Crash simpan soal manual (guru.html)
 
 **Triage:** Saat migrasi `kelas`→`jenjang`, input `mTopik` dihapus dari HTML tetapi `simpanSoalManual` masih membaca `document.getElementById("mTopik").value` → `null.value` crash. `btnResetForm` juga kehilangan listener (handler `onclick` global dihapus).

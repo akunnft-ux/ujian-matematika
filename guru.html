@@ -476,16 +476,29 @@ function renderBank() {
       prog.textContent = "";
       var box = document.getElementById("docxResult");
       box.innerHTML = "";
-      soal.forEach(function (s) {
-        AppAPI.call("simpan-soal", { soal: {
+      var username = (AppSession.data() || {}).username || "";
+      var saves = soal.map(function (s) {
+        return AppAPI.call("simpan-soal", { soal: {
           mapel: "", jenjang: s.jenjang || "", topik: "",
           kode: s.kode || "",
           blocks: s.blocks, opsi: s.opsi, kunci: s.kunci || "",
-          pembahasan: "", status: "draft", uploader: (AppSession.data() || {}).username
-        } }).catch(function () {});
+          pembahasan: "", status: "draft", uploader: username
+        } }).then(function (res) {
+          return res && res.ok ? true : ((res && res.error) || "gagal simpan soal");
+        });
       });
-      box.innerHTML = '<div class="alert alert-success">✅ ' + soal.length + " soal berhasil di-extract. Cek di Bank Soal, lalu edit bila ada yang tampil aneh.</div>";
-      muatBankSoal();
+      Promise.all(saves).then(function (results) {
+        var gagal = results.filter(function (r) { return r !== true; });
+        if (!gagal.length) {
+          box.innerHTML = '<div class="alert alert-success">✅ ' + soal.length + " soal berhasil disimpan ke Bank Soal.</div>";
+        } else {
+          box.innerHTML = '<div class="alert alert-error">⚠️ ' + gagal.length + " dari " + soal.length + " soal gagal disimpan. Contoh error: " + esc(gagal[0]) + "</div>";
+        }
+        muatBankSoal();
+      }).catch(function (err) {
+        box.innerHTML = '<div class="alert alert-error">Gagal simpan: ' + esc(err.message) + "</div>";
+        muatBankSoal();
+      });
     }).catch(function (err) {
       prog.textContent = "";
       document.getElementById("docxResult").innerHTML = '<div class="alert alert-error">Gagal: ' + err.message + "</div>";
