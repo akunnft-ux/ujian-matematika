@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ujian Matematika Online — Siswa</title>
+<title>Ujian Tes Kompetensi Akademik — Siswa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
 <body>
 <div class="page">
   <header class="topbar">
-    <div class="logo"><span class="mark">U</span> Ujian Matematika Online</div>
+    <div class="logo"><span class="mark">U</span> Ujian Tes Kompetensi Akademik</div>
     <div class="userbox" id="userbox"></div>
   </header>
 
@@ -28,7 +28,7 @@
         <div class="hero">
           <div class="hero-mark">U</div>
           <div class="hero-icon"><i class="fa-solid fa-graduation-cap"></i></div>
-          <h1 class="hero-title">Ujian Matematika Online</h1>
+          <h1 class="hero-title">Ujian Tes Kompetensi Akademik</h1>
           <p class="hero-sub">Masukkan username, password, dan kode ujian yang diberikan oleh pengawas / guru Anda.</p>
         </div>
         <div class="card-body">
@@ -340,7 +340,7 @@
           : (ujian && ujian.durasiMenit ? ujian.durasiMenit : AppConfig.EXAM.defaultDurasiMenit) * 60;
 
         var nama = state.siswa.nama || state.siswa.nis || "Siswa";
-        el.examTitle.textContent = (ujian && ujian.nama) || "Ujian Matematika";
+        el.examTitle.textContent = (ujian && ujian.nama) || "Ujian Tes Kompetensi Akademik";
         el.examInfo.textContent = nama + " · " + (state.siswa.kelas || "");
         el.userbox.innerHTML = '<i class="fa-solid fa-user"></i> ' + nama;
         el.screenConfirm.classList.add("hidden");

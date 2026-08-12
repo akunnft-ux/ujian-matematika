@@ -13,7 +13,7 @@
  *   Lalu isi SUPABASE_URL + SUPABASE_ANON_KEY (public) dari project.
  * ============================================================ */
 var AppConfig = {
-  APP_NAME: "Ujian Matematika Online",
+  APP_NAME: "Ujian Tes Kompetensi Akademik",
 
   /* ---------------- BACKEND ---------------- */
   BACKEND: "supabase",        // "mock" | "supabase"

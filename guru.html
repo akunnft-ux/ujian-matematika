@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Guru — Ujian Matematika</title>
+<title>Dashboard Guru — Ujian Tes Kompetensi Akademik</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -117,7 +117,7 @@
         <p class="card-sub">Susun isi soal per blok: Teks, Persamaan (LaTeX dengan preview), atau Gambar.</p>
         <div class="grid grid-3">
           <div class="field"><label>Kode Soal</label><input id="mKode" class="input" placeholder="M-2026-001"></div>
-          <div class="field"><label>Mapel</label><input id="mMapel" class="input" value="Matematika"></div>
+          <div class="field"><label>Mapel</label><input id="mMapel" class="input" placeholder="Mis. Matematika / Fisika"></div>
           <div class="field"><label>Kelas</label><input id="mKelas" class="input" placeholder="XII IPA"></div>
         </div>
         <div class="field"><label>Isi Soal (blok)</label><div id="mBlocks"></div></div>
@@ -141,9 +141,9 @@
       <div class="card">
         <h3 class="card-title">Buat Ujian</h3>
         <div class="grid grid-2">
-          <div class="field"><label>Nama Ujian</label><input id="uNama" class="input" placeholder="UTS Matematika XII"></div>
+          <div class="field"><label>Nama Ujian</label><input id="uNama" class="input" placeholder="UTS XII"></div>
           <div class="field"><label>Kode Ujian</label><input id="uKode" class="input" placeholder="EXM-2026-001"></div>
-          <div class="field"><label>Mapel</label><input id="uMapel" class="input" value="Matematika"></div>
+          <div class="field"><label>Mapel</label><input id="uMapel" class="input" placeholder="Mis. Matematika / Fisika"></div>
           <div class="field"><label>Kelas</label><input id="uKelas" class="input" placeholder="XII IPA"></div>
           <div class="field"><label>Durasi (menit)</label><input id="uDurasi" class="input" type="number" value="60" min="5"></div>
         </div>
@@ -462,7 +462,7 @@ function renderBank() {
       box.innerHTML = "";
       soal.forEach(function (s) {
         AppAPI.call("simpan-soal", { soal: {
-          mapel: "Matematika", kelas: "", topik: "",
+          mapel: "", kelas: "", topik: "",
           kode: s.kode || "",
           blocks: s.blocks, opsi: s.opsi, kunci: s.kunci || "",
           pembahasan: "", status: "draft", uploader: (AppSession.data() || {}).username
