@@ -149,21 +149,33 @@
     if (sesi && sesi.status === "ACTIVE") {
       return { ok: false, error: "Akun sudah dipakai. Hubungi admin untuk reset." };
     }
-    if (sesi && sesi.status === "SELESAI") {
+    var sudah = (db.hasil || []).some(function (h) {
+      return h.username === siswa.username && h.kode_ujian === kode;
+    });
+    if (sudah) {
       return { ok: false, error: "Anda sudah mengumpulkan ujian." };
     }
     var mulaiTs;
-    if (sesi) {
+    if (sesi && sesi.ujian_id === kode) {
       mulaiTs = sesi.mulai_ts || mockNow();
       sesi.status = "ACTIVE";
       sesi.login_ts = mockNow();
       sesi.fingerprint = navigator.userAgent.slice(0, 40);
     } else {
       mulaiTs = mockNow();
-      db.sesi.push({
-        username: siswa.username, nis: siswa.nis, status: "ACTIVE",
-        login_ts: mockNow(), fingerprint: navigator.userAgent.slice(0, 40), mulai_ts: mulaiTs
-      });
+      if (sesi) {
+        sesi.status = "ACTIVE";
+        sesi.mulai_ts = mulaiTs;
+        sesi.ujian_id = kode;
+        sesi.login_ts = mockNow();
+        sesi.fingerprint = navigator.userAgent.slice(0, 40);
+      } else {
+        db.sesi.push({
+          username: siswa.username, nis: siswa.nis, status: "ACTIVE",
+          login_ts: mockNow(), fingerprint: navigator.userAgent.slice(0, 40),
+          mulai_ts: mulaiTs, ujian_id: kode
+        });
+      }
     }
     var sisaDetik = (ujian.durasiMenit || 60) * 60 - Math.max(0, Math.floor((Date.now() - new Date(mulaiTs).getTime()) / 1000));
     if (sisaDetik < 0) sisaDetik = 0;
@@ -368,10 +380,10 @@
     });
     if (idx >= 0) db.hasil[idx] = row; else db.hasil.push(row);
     var sesi = (db.sesi || []).find(function (s) { return s.username === payload.username; });
-    if (sesi && sesi.status === "SELESAI") {
+    if (sesi && sesi.status === "SELESAI" && sesi.ujian_id === row.kode_ujian) {
       return { ok: false, error: "Sesi tidak aktif — jawaban sudah dikumpulkan." };
     }
-    if (sesi) sesi.status = "SELESAI";
+    if (sesi) { sesi.status = "SELESAI"; sesi.ujian_id = row.kode_ujian || sesi.ujian_id; }
     saveMock(db);
     return { ok: true, data: { benar: hitung, total: total, nilai: nilai } };
   }

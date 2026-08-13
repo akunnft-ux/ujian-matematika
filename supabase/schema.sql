@@ -70,12 +70,15 @@ create table if not exists public.kode_ujian (
 );
 
 -- Status sesi ujian siswa (anti login-ganda)
+-- ujian_id = kode ujian sesi ini; guard ACTIVE/SELESAI bersifat per-ujian
+-- sehingga siswa yang sudah selesai ujian A tetap bisa mulai ujian B (kode lain).
 create table if not exists public.sesi (
   username    text primary key,
   nis         text not null default '',
   status      text not null default 'INACTIVE',
   login_ts    timestamptz not null default now(),
   fingerprint text not null default '',
+  ujian_id    text not null default '',
   constraint sesi_status_check check (status in ('INACTIVE','ACTIVE','SELESAI'))
 );
 
@@ -114,6 +117,7 @@ create table if not exists public.hasil (
 alter table public.hasil add column if not exists kode_ujian text not null default '';
 alter table public.hasil add column if not exists kelas text not null default '';
 alter table public.sesi add column if not exists mulai_ts timestamptz;
+alter table public.sesi add column if not exists ujian_id text not null default '';
 alter table public.soal_bank add column if not exists jenjang text not null default '';
 alter table public.soal_bank drop column if exists kelas;
 alter table public.ujian drop column if exists kelas;
@@ -230,27 +234,33 @@ begin
 
   select * into v_sesi from public.sesi where username = v_user for update;
   v_ada := found;
-  if v_ada then
-    if v_sesi.status = 'ACTIVE' then
-      return json_build_object('ok', false, 'error', 'Akun sudah dipakai di perangkat lain. Hubungi admin untuk reset.');
-    end if;
-    if v_sesi.status = 'SELESAI' then
-      return json_build_object('ok', false, 'error', 'Anda sudah mengumpulkan ujian.');
-    end if;
+  -- Anti login-ganda: satu akun hanya boleh punya 1 sesi ACTIVE (mana pun ujiannya).
+  if v_ada and v_sesi.status = 'ACTIVE' then
+    return json_build_object('ok', false, 'error', 'Akun sudah dipakai di perangkat lain. Hubungi admin untuk reset.');
+  end if;
+  -- Anti re-submit bersifat PER-UJIAN: blokir hanya bila siswa sudah mengumpulkan
+  -- ujian dengan kode yang sama (hasil disimpan per (username, kode_ujian)).
+  if exists (select 1 from public.hasil where username = v_user and kode_ujian = v_ujian.kode) then
+    return json_build_object('ok', false, 'error', 'Anda sudah mengumpulkan ujian.');
   end if;
 
   v_sid := public.token_baru('s');
   insert into public.sessions (id, username, role) values (v_sid, v_user, 'siswa');
 
   -- mulai_ts ditetapkan saat pertama mulai; pertahankan saat masuk ulang
-  -- agar sisa waktu dihitung dari awal sesi (jam dinding tetap berjalan).
-  if v_ada then
+  -- untuk UJIAN YANG SAMA (jam dinding tetap berjalan). Ujian berbeda = sesi baru.
+  if v_ada and v_sesi.ujian_id = v_ujian.kode then
     update public.sesi set status='ACTIVE', login_ts=now(), fingerprint=coalesce(p_payload->>'fingerprint','')
       where username = v_user;
     select mulai_ts into v_mulai from public.sesi where username = v_user;
+  elsif v_ada then
+    update public.sesi set status='ACTIVE', login_ts=now(), mulai_ts=now(),
+      fingerprint=coalesce(p_payload->>'fingerprint',''), ujian_id=v_ujian.kode
+      where username = v_user;
+    v_mulai := now();
   else
-    insert into public.sesi (username, nis, status, login_ts, fingerprint, mulai_ts)
-      values (v_user, v_siswa.nis, 'ACTIVE', now(), coalesce(p_payload->>'fingerprint',''), now());
+    insert into public.sesi (username, nis, status, login_ts, fingerprint, mulai_ts, ujian_id)
+      values (v_user, v_siswa.nis, 'ACTIVE', now(), coalesce(p_payload->>'fingerprint',''), now(), v_ujian.kode);
     v_mulai := now();
   end if;
   v_mulai := coalesce(v_mulai, now());
@@ -591,21 +601,26 @@ begin
   v_username := coalesce(p_payload->>'username', '');
   v_kode_ujian := coalesce(p_payload->>'kode', '');
   v_kelas := coalesce(p_payload->>'kelas', '');
+  -- Kode ujian yang dikerjakan = kode di payload (sama dengan yang dipakai siswa
+  -- saat mulai & tersimpan di sesi.ujian_id). kode_ujian.ujian_id hanya fallback
+  -- bila payload kosong, supaya hasil tercatat ke ujian yang benar (konsisten dgn mock).
+  select coalesce(ujian_id, ''), coalesce(kelas, '') into v_kode_ujian, v_kelas
+    from public.kode_ujian where username = v_username and coalesce(p_payload->>'kode', '') = '';
+  if coalesce(v_kode_ujian, '') = '' then v_kode_ujian := coalesce(p_payload->>'kode', ''); end if;
+  if coalesce(v_kelas, '') = '' then v_kelas := coalesce(p_payload->>'kelas', ''); end if;
   -- Anti spoofing + anti oracle: sesi siswa hanya boleh mengumpulkan untuk
-  -- dirinya sendiri, dan hanya saat sesi masih ACTIVE (belum pernah submit).
+  -- dirinya sendiri, dan hanya saat sesi UJIAN INI masih ACTIVE (belum pernah submit).
   if v_role = 'siswa' then
     select username into v_sess_user from public.sessions where id = p_payload->>'session_id';
     if v_sess_user is distinct from v_username then
       return json_build_object('ok', false, 'error', 'Sesi tidak sesuai akun.');
     end if;
-    if not exists (select 1 from public.sesi where username = v_username and status = 'ACTIVE') then
+    if not exists (select 1 from public.sesi
+                    where username = v_username and status = 'ACTIVE'
+                      and ujian_id = coalesce(p_payload->>'kode', '')) then
       return json_build_object('ok', false, 'error', 'Sesi tidak aktif — jawaban sudah dikumpulkan atau belum mulai.');
     end if;
   end if;
-  select coalesce(ujian_id, ''), coalesce(kelas, '') into v_kode_ujian, v_kelas
-    from public.kode_ujian where username = v_username;
-  if coalesce(v_kode_ujian, '') = '' then v_kode_ujian := coalesce(p_payload->>'kode', ''); end if;
-  if coalesce(v_kelas, '') = '' then v_kelas := coalesce(p_payload->>'kelas', ''); end if;
   v_ans := coalesce(p_payload->'jawaban', '[]'::jsonb);
   for v_j in select * from jsonb_array_elements(v_ans) loop
     v_total := v_total + 1;
@@ -625,7 +640,8 @@ begin
   on conflict (username, kode_ujian) where kode_ujian <> '' do update
     set nis = excluded.nis, nama = excluded.nama, kelas = excluded.kelas,
         benar = excluded.benar, total = excluded.total, nilai = excluded.nilai, ts = excluded.ts;
-  update public.sesi set status = 'SELESAI' where username = v_username;
+  update public.sesi set status = 'SELESAI'
+    where username = v_username and ujian_id = coalesce(p_payload->>'kode', '');
   return json_build_object('ok', true, 'data', json_build_object(
     'benar', v_benar, 'salah', v_salah, 'kosong', v_kosong, 'total', v_total, 'nilai', v_nilai
   ));
