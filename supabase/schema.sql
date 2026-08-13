@@ -31,6 +31,10 @@ create table if not exists public.users (
   aktif      boolean not null default true
 );
 
+-- Migrasi untuk DB lama yang tabel users-nya sudah ada (create table if not exists
+-- tidak menambah kolom). Wajib agar rpc_get_users tidak error "column does not exist".
+alter table public.users add column if not exists pass_plain text not null default '';
+
 -- Bank soal (blok teks/latex/gambar)
 create table if not exists public.soal_bank (
   id         text primary key,
