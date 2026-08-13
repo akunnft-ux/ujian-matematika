@@ -104,6 +104,7 @@
     var kunciLines = [];
     var kode = "";
     var jenjang = "";
+    var mapel = "";
 
     function startQuestion(nomor) {
       current = { nomor: nomor, blocks: [], opsi: [], line: null };
@@ -115,6 +116,8 @@
       if (mKode) { kode = mKode[1].trim(); return; }
       var mJenjang = l.text.match(/^\s*JENJANG\s*[:]\s*(.+)\s*$/i);
       if (mJenjang) { jenjang = mJenjang[1].trim(); return; }
+      var mMapel = l.text.match(/^\s*MAPEL\s*[:]\s*(.+)\s*$/i);
+      if (mMapel) { mapel = mMapel[1].trim(); return; }
       var mKunci = l.text.match(/^\s*KUNCI\s*JAWABAN\s*[:]*\s*(.*)$/i);
       if (mKunci) {
         diKunci = true;
@@ -149,8 +152,8 @@
       if (current) pushTextToCurrent(current, l.text);
     });
 
-    // terapkan kode soal & jenjang ke semua soal dalam paket
-    soal.forEach(function (s) { s.kode = kode; s.jenjang = jenjang; });
+    // terapkan kode soal, jenjang & mapel ke semua soal dalam paket
+    soal.forEach(function (s) { s.kode = kode; s.jenjang = jenjang; s.mapel = mapel; });
 
     // apply kunci ke soal
     var kunciRe = /(\d{1,3})\s*[.)]?\s*([A-Ea-e])/g;

@@ -59,7 +59,7 @@
         <div class="flex" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
           <div class="input-icon-wrap" style="max-width:260px; flex:1 1 200px; min-width:160px;">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input id="fCari" class="input" placeholder="Cari kode / topik / jenjang / isi soal...">
+            <input id="fCari" class="input" placeholder="Cari kode / mapel / jenjang / isi soal...">
           </div>
           <select id="fJenjang" class="input" style="max-width:150px">
             <option value="">Semua jenjang</option>
@@ -101,10 +101,6 @@
             <small>atau seret ke sini</small>
           </div>
           <input type="file" id="fileXlsx" accept=".xlsx,.xls" class="hidden">
-          <div class="mt">
-            <label class="muted" style="font-size:13px">Opsional: tautkan ke ujian (kode)</label>
-            <input type="text" id="xlsxUjianKode" class="input" placeholder="Kode ujian (opsional)">
-          </div>
           <div id="xlsxResult" class="mt"></div>
         </div>
       </div>
@@ -118,7 +114,6 @@
         <div class="grid grid-3">
           <div class="field"><label>Kode Soal</label><input id="mKode" class="input" placeholder="M-2026-001"></div>
           <div class="field"><label>Mapel</label><input id="mMapel" class="input" placeholder="Mis. Matematika / Fisika"></div>
-          <div class="field"><label>Topik</label><input id="mTopik" class="input" placeholder="Mis. Kalkulus / Integral"></div>
           <div class="field"><label>Jenjang</label>
             <select id="mJenjang" class="input" style="max-width:150px">
               <option value="">—</option>
@@ -334,7 +329,7 @@ function renderBank() {
     if (kod && s.kode !== kod) return false;
     if (jg && s.jenjang !== jg) return false;
     if (q) {
-      var hay = [s.kode, s.topik, s.mapel, s.jenjang, s.kunci, s.uploader]
+      var hay = [s.kode, s.mapel, s.jenjang, s.kunci, s.uploader]
         .concat((s.blocks || []).map(function (b) { return b.value; }))
         .concat(s.opsi || [])
         .join(" ").toLowerCase();
@@ -362,7 +357,7 @@ function renderBank() {
     head.innerHTML = '<span class="badge ' + (s.status === "aktif" ? "badge-green" : "badge-amber") + '">' + esc(s.status || "draft") + "</span>" +
       (s.kode ? '<span class="badge badge-blue">' + esc(s.kode) + "</span>" : "") +
       (s.jenjang ? '<span class="badge badge-slate">' + esc(s.jenjang) + "</span>" : "") +
-      (s.topik ? '<span class="badge badge-slate">' + esc(s.topik) + "</span>" : "") +
+      (s.mapel ? '<span class="badge badge-slate">' + esc(s.mapel) + "</span>" : "") +
       '<span class="muted" style="font-size:12px">' + esc(s.id || "") + "</span>";
     card.appendChild(head);
     var body = document.createElement("div");
@@ -479,7 +474,7 @@ function renderBank() {
       var username = (AppSession.data() || {}).username || "";
       var saves = soal.map(function (s) {
         return AppAPI.call("simpan-soal", { soal: {
-          mapel: "", jenjang: s.jenjang || "", topik: "",
+          mapel: s.mapel || "", jenjang: s.jenjang || "",
           kode: s.kode || "",
           blocks: s.blocks, opsi: s.opsi, kunci: s.kunci || "",
           pembahasan: "", status: "draft", uploader: username
@@ -523,8 +518,7 @@ function renderBank() {
         document.getElementById("xlsxResult").innerHTML = '<div class="alert alert-warn">Tidak ada data siswa yang terbaca. Pastikan kolom Nama ada.</div>';
         return;
       }
-      var kode = document.getElementById("xlsxUjianKode").value.trim();
-      AppAPI.call("upload-siswa", { rows: rows.map(function (r) { return { username: r.username, password: r.password, nis: r.nis, nama: r.nama, kelas: r.kelas, ujianId: r.ujianId || kode }; }) }).then(function (res) {
+      AppAPI.call("upload-siswa", { rows: rows.map(function (r) { return { username: r.username, password: r.password, nis: r.nis, nama: r.nama, kelas: r.kelas, ujianId: r.ujianId || "" }; }) }).then(function (res) {
         if (!res.ok) {
           document.getElementById("xlsxResult").innerHTML = '<div class="alert alert-error">Gagal: ' + (res.error || "gagal menyimpan siswa") + "</div>";
           return;
@@ -582,7 +576,6 @@ function renderBank() {
       kode: document.getElementById("mKode").value.trim(),
       mapel: document.getElementById("mMapel").value.trim(),
       jenjang: document.getElementById("mJenjang").value.trim(),
-      topik: document.getElementById("mTopik").value.trim(),
       blocks: blocks, opsi: opsi, kunci: document.getElementById("mKunci").value,
       pembahasan: document.getElementById("mPembahasan").value.trim(),
       status: "draft", uploader: (AppSession.data() || {}).username
@@ -598,7 +591,7 @@ function renderBank() {
 
   function resetForm() {
     document.getElementById("mKode").value = "";
-    document.getElementById("mJenjang").value = ""; document.getElementById("mTopik").value = "";
+    document.getElementById("mJenjang").value = "";
     document.getElementById("mPembahasan").value = "";
     renderOpsiInputs();
     if (editorManual) {
@@ -629,9 +622,7 @@ function renderBank() {
     fJenjang.appendChild(jsel);
     var fKode = document.createElement("div"); fKode.className = "field";
     fKode.innerHTML = "<label>Kode Soal</label>"; fKode.appendChild(mkInput("kode", s.kode || ""));
-    var fTopik = document.createElement("div"); fTopik.className = "field";
-    fTopik.innerHTML = "<label>Topik</label>"; fTopik.appendChild(mkInput("topik", s.topik || ""));
-    body.appendChild(fMapel); body.appendChild(fJenjang); body.appendChild(fKode); body.appendChild(fTopik);
+    body.appendChild(fMapel); body.appendChild(fJenjang); body.appendChild(fKode);
     var fBlocks = document.createElement("div"); fBlocks.className = "field";
     fBlocks.innerHTML = "<label>Isi Soal (blok — hapus persamaan rusak, ganti dengan gambar/LaTeX)</label>";
     var holder = document.createElement("div"); fBlocks.appendChild(holder); body.appendChild(fBlocks);
@@ -666,7 +657,6 @@ function renderBank() {
         id: editingId, mapel: body.querySelector("#mapel").value.trim(),
         jenjang: body.querySelector("#jenjang").value.trim(),
         kode: body.querySelector("#kode").value.trim(),
-        topik: body.querySelector("#topik").value.trim(),
         blocks: blok, opsi: opsi, kunci: ksel.value, pembahasan: body.querySelector("#pembahasan").value.trim(),
         status: s.status, uploader: s.uploader
       };
@@ -736,7 +726,7 @@ function renderBank() {
       cb.checked = s.status === "aktif";
       var body = document.createElement("span"); body.style.flex = "1";
       var head = document.createElement("span"); head.style.display = "block"; head.style.fontSize = "12px"; head.style.color = "var(--text-soft)";
-      head.textContent = (s.jenjang || "") + " · " + (s.topik || "") + " · " + s.id + " [" + s.status + "]";
+      head.textContent = (s.jenjang || "") + " · " + (s.mapel || "") + " · " + s.id + " [" + s.status + "]";
       var isi = document.createElement("span"); isi.style.display = "block";
       isi.appendChild(RenderSoal.blocks(s.blocks || []));
       body.appendChild(head); body.appendChild(isi);
