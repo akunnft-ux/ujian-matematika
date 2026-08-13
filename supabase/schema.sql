@@ -90,6 +90,16 @@ create table if not exists public.sessions (
   created_at timestamptz not null default now()
 );
 
+-- Antrean permintaan reset login dari siswa (muncul di tab Reset Siswa admin)
+create table if not exists public.reset_requests (
+  username     text primary key,
+  nis          text not null default '',
+  nama         text not null default '',
+  kelas        text not null default '',
+  kode_ujian   text not null default '',
+  requested_at timestamptz not null default now()
+);
+
 -- Jawaban per soal
 create table if not exists public.jawaban (
   id       bigserial primary key,
@@ -142,12 +152,13 @@ alter table public.ujian      enable row level security;
 alter table public.kode_ujian enable row level security;
 alter table public.sesi       enable row level security;
 alter table public.sessions   enable row level security;
+alter table public.reset_requests enable row level security;
 alter table public.jawaban    enable row level security;
 alter table public.hasil      enable row level security;
 
 revoke all on public.users, public.soal_bank, public.ujian,
           public.kode_ujian, public.sesi, public.sessions,
-          public.jawaban, public.hasil
+          public.jawaban, public.hasil, public.reset_requests
   from anon, authenticated;
 
 -- ============================================================
@@ -688,7 +699,68 @@ begin
     return json_build_object('ok', false, 'error', 'Siswa sudah mengumpulkan ujian; hasil tidak bisa dibatalkan lewat reset.');
   end if;
   update public.sesi set status = 'INACTIVE' where username = p_payload->>'username';
+  delete from public.reset_requests where username = p_payload->>'username';
   return json_build_object('ok', true);
+end $$;
+
+-- Siswa meminta reset login (dikonfirmasi ulang dengan password, hanya saat sesi terkunci ACTIVE)
+create or replace function public.rpc_minta_reset(p_payload jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_user  text;
+  v_pass  text;
+  v_kode  text;
+  v_siswa public.kode_ujian%rowtype;
+  v_sesi  public.sesi%rowtype;
+begin
+  v_user := btrim(coalesce(p_payload->>'username', ''));
+  v_pass := coalesce(p_payload->>'password', '');
+  v_kode := btrim(coalesce(p_payload->>'kode', ''));
+  if v_user = '' or v_pass = '' then
+    return json_build_object('ok', false, 'error', 'Username/password kosong.');
+  end if;
+  select * into v_siswa from public.kode_ujian where username = v_user;
+  if not found or v_siswa.pass_hash <> encode(digest(v_pass, 'sha256'), 'hex') then
+    return json_build_object('ok', false, 'error', 'Kredensial tidak valid.');
+  end if;
+  select * into v_sesi from public.sesi where username = v_user;
+  if not found or v_sesi.status <> 'ACTIVE' then
+    return json_build_object('ok', false, 'error', 'Akun tidak sedang terkunci. Tidak perlu reset.');
+  end if;
+  v_kode := coalesce(nullif(v_kode, ''), v_sesi.ujian_id);
+  if exists (select 1 from public.hasil where username = v_user and kode_ujian = v_kode) then
+    return json_build_object('ok', false, 'error', 'Ujian sudah dikumpulkan; tidak bisa direset.');
+  end if;
+  insert into public.reset_requests (username, nis, nama, kelas, kode_ujian, requested_at)
+  values (v_user, v_siswa.nis, v_siswa.nama, v_siswa.kelas, v_kode, now())
+  on conflict (username) do update
+    set nis = excluded.nis, nama = excluded.nama, kelas = excluded.kelas,
+        kode_ujian = excluded.kode_ujian, requested_at = excluded.requested_at;
+  return json_build_object('ok', true);
+end $$;
+
+-- Daftar permintaan reset login (khusus admin, tab Reset Siswa)
+create or replace function public.rpc_get_reset_requests(p_payload jsonb default '{}'::jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_role text;
+  v_out jsonb;
+begin
+  v_role := public.sesi_role(p_payload->>'session_id');
+  if v_role is null or v_role <> 'admin' then
+    return json_build_object('ok', false, 'error', 'Khusus admin.');
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'username', r.username, 'nis', r.nis, 'nama', r.nama,
+           'kelas', r.kelas, 'kode_ujian', r.kode_ujian,
+           'requested_at', r.requested_at) order by r.requested_at desc), '[]'::jsonb)
+    into v_out
+  from public.reset_requests r;
+  return json_build_object('ok', true, 'data', v_out);
 end $$;
 
 create or replace function public.rpc_get_hasil(p_payload jsonb default '{}'::jsonb)

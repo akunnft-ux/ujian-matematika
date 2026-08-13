@@ -42,7 +42,7 @@
   <main class="container hidden" id="dashWrap">
     <nav class="tabs" id="tabs">
       <button class="tab active" data-tab="monitor"><i class="fa-solid fa-radar"></i> Monitor</button>
-      <button class="tab" data-tab="siswa"><i class="fa-solid fa-graduation-cap"></i> Siswa</button>
+      <button class="tab" data-tab="siswa"><i class="fa-solid fa-user-lock"></i> Reset Siswa</button>
       <button class="tab" data-tab="datasiswa"><i class="fa-solid fa-users"></i> Data Siswa</button>
       <button class="tab" data-tab="ujian"><i class="fa-solid fa-screwdriver-wrench"></i> Ujian</button>
       <button class="tab" data-tab="user"><i class="fa-solid fa-users-gear"></i> Guru</button>
@@ -50,12 +50,12 @@
     </nav>
 
     <section id="tab-monitor" class="tab-panel">
-      <div class="section-head"><h2>Monitoring Real-time</h2><button id="btnRefreshMonitor" class="btn btn-ghost">⟳ Refresh</button></div>
+      <div class="section-head"><h2>Monitoring</h2><button id="btnRefreshMonitor" class="btn btn-ghost">⟳ Refresh</button></div>
       <div id="monitorBox"></div>
     </section>
 
     <section id="tab-siswa" class="tab-panel hidden">
-      <div class="section-head"><h2>Data Siswa &amp; Status Login</h2></div>
+      <div class="section-head"><h2>Permintaan Reset Login</h2><button id="btnRefreshReset" class="btn btn-ghost">⟳ Refresh</button></div>
       <div id="siswaBox"></div>
     </section>
 
@@ -182,7 +182,7 @@
 
   /* ===== MONITOR ===== */
   function infoStatusSiswa(st) {
-    if (st === "ACTIVE") return { label: "Sedang ujian", badge: "badge-green" };
+    if (st === "ACTIVE") return { label: "Sedang mengerjakan ...", badge: "badge-green" };
     if (st === "SELESAI") return { label: "Selesai", badge: "badge-blue" };
     return { label: "Belum ujian", badge: "badge-slate" };
   }
@@ -200,30 +200,23 @@
     });
   }
 
-  /* ===== SISWA / RESET ===== */
-  var __sesiRoster = [];
+  /* ===== RESET SISWA (antrean permintaan reset dari siswa) ===== */
   function muatSiswa() {
-    Promise.all([AppAPI.call("get-progress"), AppAPI.call("get-hasil")]).then(function (rs) {
-      var sesi = rs[0].data || [];
-      var hasil = rs[1].data || [];
-      __sesiRoster = sesi;
+    AppAPI.call("get-reset-requests").then(function (res) {
+      var list = res.data || [];
       var box = document.getElementById("siswaBox");
-      if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
-      box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Aksi</th></tr></thead><tbody>" +
-        sesi.map(function (s) {
-          var st = infoStatusSiswa(s.status);
-          var btn;
-          if (s.status === "ACTIVE") {
-            btn = '<button class="btn btn-sm btn-outline" data-reset-username="' + esc(s.username) + '">Reset Login</button>';
-          } else if (s.status === "SELESAI") {
-            btn = "<span class='muted' style='font-size:12px' title='Siswa sudah mengumpulkan ujian; hasil tidak bisa dibatalkan'>Terlindungi</span>";
-          } else {
-            btn = "";
-          }
-          return "<tr><td>" + esc(s.nis) + "</td><td>" + esc(s.username) + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td>" + btn + "</td></tr>";
+      if (!list.length) { box.innerHTML = '<div class="card muted center">Belum ada permintaan reset login.</div>'; return; }
+      box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Kelas</th><th>Username</th><th>Kode Ujian</th><th>Diminta</th><th>Aksi</th></tr></thead><tbody>" +
+        list.map(function (r) {
+          return "<tr><td>" + esc(r.nama) + "</td><td>" + esc(r.nis || "-") + "</td><td>" + esc(r.kelas || "-") + "</td><td><code>" + esc(r.username) + "</code></td><td class='muted'>" + esc(r.kode_ujian || "-") + "</td><td class='muted'>" + (r.requested_at ? new Date(r.requested_at).toLocaleString() : "") + "</td>" +
+            '<td><button class="btn btn-sm btn-outline" data-reset-username="' + esc(r.username) + '">Reset Login</button></td></tr>';
         }).join("") + "</tbody></table></div>";
+    }).catch(function (err) {
+      document.getElementById("siswaBox").innerHTML = '<div class="muted">' + esc(err.message) + "</div>";
     });
   }
+
+  document.getElementById("btnRefreshReset").addEventListener("click", muatSiswa);
 
   document.getElementById("siswaBox").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-reset-username]");
@@ -284,11 +277,9 @@
   document.getElementById("btnRefreshSiswa").addEventListener("click", muatDataSiswa);
 
   window.__resetLogin = function (username) {
-    var s = (__sesiRoster || []).find(function (x) { return x.username === username; });
-    var label = s ? infoStatusSiswa(s.status).label : "?";
     var pesan = "Reset login siswa \"" + username + "\"?\n\n" +
-      "Status saat ini: " + label + ".\n" +
-      "Siswa yang sedang ujian akan bisa masuk lagi dan LANJUT dari jawaban terakhir beserta sisa waktu.\n" +
+      "Sesi aktif dibebaskan dan permintaan ini dihapus dari daftar.\n" +
+      "Siswa bisa login lagi dan lanjut dari jawaban terakhir beserta sisa waktu.\n" +
       "Lanjutkan?";
     if (!window.confirm(pesan)) return;
     AppAPI.call("reset-login", { username: username }).then(function (res) {

@@ -57,6 +57,7 @@
     if (!db.sesi) { db.sesi = []; changed = true; }
     if (!db.jawaban) { db.jawaban = []; changed = true; }
     if (!db.hasil) { db.hasil = []; changed = true; }
+    if (!db.resetRequests) { db.resetRequests = []; changed = true; }
     if (changed) saveMock(db);
     return db;
   }
@@ -297,8 +298,45 @@
       return { ok: false, error: "Siswa sudah mengumpulkan ujian; hasil tidak bisa dibatalkan lewat reset." };
     }
     if (sesi) sesi.status = "INACTIVE";
+    db.resetRequests = (db.resetRequests || []).filter(function (r) { return r.username !== username; });
     saveMock(db);
     return { ok: true };
+  }
+  function mockMintaReset(payload) {
+    var db = loadMock();
+    var username = String(payload.username || "").trim();
+    var password = String(payload.password || "");
+    var kode = String(payload.kode || "").trim();
+    var siswa = (db.kodeUjian || []).find(function (k) {
+      return String(k.username || "").trim() === username && String(k.password || "") === password;
+    });
+    if (!siswa) return { ok: false, error: "Kredensial tidak valid." };
+    var sesi = (db.sesi || []).find(function (s) { return s.username === username; });
+    if (!sesi || sesi.status !== "ACTIVE") {
+      return { ok: false, error: "Akun tidak sedang terkunci. Tidak perlu reset." };
+    }
+    var ujianId = kode || sesi.ujian_id || "";
+    var punyaHasil = (db.hasil || []).some(function (h) {
+      return h.username === username && h.kode_ujian && h.kode_ujian === ujianId;
+    });
+    if (punyaHasil) return { ok: false, error: "Ujian sudah dikumpulkan; tidak bisa direset." };
+    var req = db.resetRequests || [];
+    var idx = req.findIndex(function (r) { return r.username === username; });
+    var row = {
+      username: username, nis: siswa.nis || "", nama: siswa.nama || "",
+      kelas: siswa.kelas || "", kode_ujian: ujianId, requested_at: mockNow()
+    };
+    if (idx >= 0) req[idx] = row; else req.push(row);
+    db.resetRequests = req;
+    saveMock(db);
+    return { ok: true };
+  }
+  function mockGetResetRequests() {
+    var db = loadMock();
+    var list = (db.resetRequests || []).slice().sort(function (a, b) {
+      return String(b.requested_at || "").localeCompare(String(a.requested_at || ""));
+    });
+    return { ok: true, data: list };
   }
   function mockGetProgress() {
     var db = loadMock();
@@ -418,6 +456,8 @@
       case "aktifkan-ujian": return mockAktifkanUjian(payload.id);
       case "selesai-ujian": return mockSelesaiUjian(payload.id);
       case "reset-login": return mockResetLogin(payload.username);
+      case "minta-reset": return mockMintaReset(payload);
+      case "get-reset-requests": return mockGetResetRequests();
       case "get-progress": return mockGetProgress();
       case "get-hasil": return mockGetHasil();
       case "get-siswa": return mockGetSiswa();
@@ -445,6 +485,8 @@
     "aktifkan-ujian": "rpc_aktifkan_ujian",
     "selesai-ujian": "rpc_selesai_ujian",
     "reset-login": "rpc_reset_login",
+    "minta-reset": "rpc_minta_reset",
+    "get-reset-requests": "rpc_get_reset_requests",
     "get-progress": "rpc_get_progress",
     "get-hasil": "rpc_get_hasil",
     "get-siswa": "rpc_get_siswa",

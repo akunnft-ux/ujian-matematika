@@ -182,6 +182,28 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== MODAL MINTA RESET LOGIN ===== -->
+    <div class="modal-overlay" id="resetModal">
+      <div class="modal" style="max-width:440px">
+        <div class="center">
+          <div class="hero-icon" style="background:#fee2e2; color:#b91c1c; box-shadow:none"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <h3 class="card-title" style="font-size:20px; margin-top:10px">Akun Sedang Dipakai</h3>
+          <p class="card-sub">Akun ini sedang digunakan di perangkat lain. Anda tidak bisa memulai ujian sampai admin me-reset login Anda.</p>
+        </div>
+        <div class="bg-slate-soft" style="border-radius:14px; padding:14px 18px; font-size:14px">
+          <div class="flex" style="justify-content:space-between"><span class="muted">Nama</span><b id="rrNama">-</b></div>
+          <div class="flex" style="justify-content:space-between"><span class="muted">NIS / Nomor</span><b id="rrNis">-</b></div>
+          <div class="flex" style="justify-content:space-between"><span class="muted">Kelas</span><b id="rrKelas">-</b></div>
+          <div class="flex" style="justify-content:space-between"><span class="muted">Ujian</span><b id="rrKode">-</b></div>
+        </div>
+        <div id="rrInfo" style="margin-top:14px"></div>
+        <div class="flex" style="margin-top:18px">
+          <button class="btn btn-ghost" style="flex:1" id="rrBatal"><i class="fa-solid fa-arrow-left"></i> Nanti Saja</button>
+          <button class="btn" style="flex:1" id="rrKirim"><i class="fa-solid fa-paper-plane"></i> Minta Reset</button>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -206,6 +228,8 @@
     timerInt: null,
     terkirim: {}          // soalId -> true (sudah di-lock/kirim)
   };
+
+  var passwordSiswa = ""; // untuk konfirmasi ulang saat minta reset
 
   var el = {
     screenLogin: document.getElementById("screen-login"),
@@ -273,6 +297,7 @@
     var kode = el.token.value.trim();
     if (!username || !password) { el.loginMsg.textContent = "Isi username dan password."; return; }
     if (!kode) { el.loginMsg.textContent = "Masukkan kode ujian."; return; }
+    passwordSiswa = password;
     el.btnLogin.disabled = true;
     el.loginMsg.textContent = "Memvalidasi akun...";
     AppAPI.call("login-siswa", { username: username, password: password, kode: kode }).then(function (res) {
@@ -304,7 +329,15 @@
     el.mulaiMsg.textContent = "Memvalidasi token...";
     AppAPI.call("mulai-ujian", { username: state.siswa.username, kode: state.kodeLogin, token: token }).then(function (res) {
       el.btnMulai.disabled = false;
-      if (!res.ok) { el.mulaiMsg.textContent = res.error; return; }
+      if (!res.ok) {
+        // Akun terkunci (dipakai perangkat lain) -> tampilkan popup minta reset
+        if (state.siswa && /reset/i.test(res.error)) {
+          bukaModalReset();
+        } else {
+          el.mulaiMsg.textContent = res.error;
+        }
+        return;
+      }
       state.siswa = res.data.siswa;
       state.ujian = res.data.ujian || state.ujian;
       state.sisaDetik = typeof res.data.sisaDetik === "number" ? res.data.sisaDetik : null;
@@ -573,6 +606,55 @@
   el.btnLagi.addEventListener("click", function () {
     AppSession.clear();
     location.reload();
+  });
+
+  /* ===== MODAL MINTA RESET ===== */
+  var resetModal = document.getElementById("resetModal");
+  var rrKirim = document.getElementById("rrKirim");
+  var rrInfo = document.getElementById("rrInfo");
+
+  function bukaModalReset() {
+    document.getElementById("rrNama").textContent = state.siswa.nama || "-";
+    document.getElementById("rrNis").textContent = state.siswa.nis || "-";
+    document.getElementById("rrKelas").textContent = state.siswa.kelas || "-";
+    document.getElementById("rrKode").textContent = state.kodeLogin || "-";
+    rrInfo.textContent = "";
+    rrInfo.className = "";
+    rrKirim.disabled = false;
+    rrKirim.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Minta Reset';
+    resetModal.classList.add("open");
+  }
+
+  document.getElementById("rrBatal").addEventListener("click", function () {
+    resetModal.classList.remove("open");
+  });
+
+  rrKirim.addEventListener("click", function () {
+    rrKirim.disabled = true;
+    rrKirim.textContent = "Mengirim...";
+    AppAPI.call("minta-reset", {
+      username: state.siswa.username,
+      password: passwordSiswa,
+      kode: state.kodeLogin
+    }).then(function (res) {
+      if (!res.ok) {
+        rrInfo.textContent = res.error;
+        rrInfo.className = "alert alert-error";
+        rrKirim.disabled = false;
+        rrKirim.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Minta Reset';
+        return;
+      }
+      rrInfo.textContent = "Permintaan reset terkirim ke admin. Tunggu admin me-reset, lalu coba mulai ujian lagi.";
+      rrInfo.className = "alert alert-success";
+      rrKirim.disabled = true;
+      rrKirim.innerHTML = '<i class="fa-solid fa-circle-check"></i> Terkirim';
+      el.mulaiMsg.textContent = "Permintaan reset terkirim ke admin. Silakan tunggu.";
+    }).catch(function (err) {
+      rrInfo.textContent = err.message;
+      rrInfo.className = "alert alert-error";
+      rrKirim.disabled = false;
+      rrKirim.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Minta Reset';
+    });
   });
 
   /* ===== TOAST ===== */
