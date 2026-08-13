@@ -253,7 +253,13 @@ begin
   select * into v_sesi from public.sesi where username = v_user for update;
   v_ada := found;
   -- Anti login-ganda: satu akun hanya boleh punya 1 sesi ACTIVE (mana pun ujiannya).
-  if v_ada and v_sesi.status = 'ACTIVE' then
+  -- Resume diizinkan bila request datang dari sesi login yang SAMA (browser yang sama,
+  -- mis. setelah refresh/F5): session_id di payload masih milik siswa ini.
+  -- Perangkat lain (session_id beda/null) tetap ditolak.
+  if v_ada and v_sesi.status = 'ACTIVE'
+     and not exists (select 1 from public.sessions
+                      where id = coalesce(p_payload->>'session_id','')
+                        and username = v_user and role = 'siswa') then
     return json_build_object('ok', false, 'error', 'Akun sudah dipakai di perangkat lain. Hubungi admin untuk reset.');
   end if;
   -- Anti re-submit bersifat PER-UJIAN: blokir hanya bila siswa sudah mengumpulkan
@@ -682,7 +688,8 @@ begin
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
            'username', ku.username, 'nis', ku.nis,
-           'kode_ujian', coalesce(ku.ujian_id, ''),
+           -- kode ujian yang benar = sesi yang sedang/sudah dikerjakan siswa
+           'kode_ujian', coalesce(nullif(s.ujian_id, ''), ku.ujian_id, ''),
            'status', coalesce(s.status, 'INACTIVE'),
            'login_ts', s.login_ts, 'fingerprint', s.fingerprint) order by s.login_ts desc nulls last), '[]'::jsonb)
     into v_out

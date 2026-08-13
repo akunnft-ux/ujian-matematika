@@ -133,7 +133,7 @@
     return { ok: true, data: { siswa: siswa, ujian: { id: ujian.id, kode: ujian.kode, nama: ujian.nama } } };
   }
 
-  function mockMulaiUjian(username, kode, token) {
+  function mockMulaiUjian(username, kode, token, sessionId) {
     var db = loadMock();
     username = String(username || "").trim();
     kode = String(kode || "").trim();
@@ -147,7 +147,9 @@
     if (ujian.status !== "aktif") return { ok: false, error: "Ujian belum diaktifkan admin." };
     if (ujian.token !== token) return { ok: false, error: "Token salah. Periksa kembali." };
     var sesi = (db.sesi || []).find(function (s) { return s.username === siswa.username; });
-    if (sesi && sesi.status === "ACTIVE") {
+    // Anti login-ganda: ACTIVE hanya boleh di-resume oleh sesi login yang sama (browser yang
+    // sama, mis. setelah refresh). Mock menyimpan session terakhir di sesi.session_id.
+    if (sesi && sesi.status === "ACTIVE" && sesi.session_id !== sessionId) {
       return { ok: false, error: "Akun sudah dipakai. Hubungi admin untuk reset." };
     }
     var sudah = (db.hasil || []).some(function (h) {
@@ -157,11 +159,13 @@
       return { ok: false, error: "Anda sudah mengumpulkan ujian." };
     }
     var mulaiTs;
+    var sid = "sess-" + Date.now();
     if (sesi && sesi.ujian_id === kode) {
       mulaiTs = sesi.mulai_ts || mockNow();
       sesi.status = "ACTIVE";
       sesi.login_ts = mockNow();
       sesi.fingerprint = navigator.userAgent.slice(0, 40);
+      sesi.session_id = sid;
     } else {
       mulaiTs = mockNow();
       if (sesi) {
@@ -170,11 +174,12 @@
         sesi.ujian_id = kode;
         sesi.login_ts = mockNow();
         sesi.fingerprint = navigator.userAgent.slice(0, 40);
+        sesi.session_id = sid;
       } else {
         db.sesi.push({
           username: siswa.username, nis: siswa.nis, status: "ACTIVE",
           login_ts: mockNow(), fingerprint: navigator.userAgent.slice(0, 40),
-          mulai_ts: mulaiTs, ujian_id: kode
+          mulai_ts: mulaiTs, ujian_id: kode, session_id: sid
         });
       }
     }
@@ -187,7 +192,7 @@
     return {
       ok: true,
       data: {
-        siswa: siswa, ujian: ujian, sessionId: "sess-" + Date.now(),
+        siswa: siswa, ujian: ujian, sessionId: sid,
         sisaDetik: sisaDetik, jawabanLama: jawabanLama
       }
     };
@@ -344,12 +349,15 @@
     var ujian = db.ujian || [];
     return { ok: true, data: (db.kodeUjian || []).map(function (k) {
       var s = sesi.find(function (x) { return x.username === k.username; });
-      var u = ujian.find(function (x) { return x.kode === k.ujianId; }) ||
+      var sesiKode = (s && s.ujian_id) || "";
+      var u = (sesiKode && (ujian.find(function (x) { return x.kode === sesiKode; }) ||
+                            ujian.find(function (x) { return x.id === sesiKode; }))) ||
+              ujian.find(function (x) { return x.kode === k.ujianId; }) ||
               ujian.find(function (x) { return x.id === k.ujianId; });
       return {
         username: k.username,
         nis: k.nis || "",
-        kode_ujian: u ? u.kode : (k.ujianId || ""),
+        kode_ujian: u ? u.kode : (sesiKode || k.ujianId || ""),
         status: s ? s.status : "INACTIVE",
         login_ts: s ? s.login_ts : null,
         fingerprint: s ? s.fingerprint : ""
@@ -437,10 +445,12 @@
     });
     if (idx >= 0) db.hasil[idx] = row; else db.hasil.push(row);
     var sesi = (db.sesi || []).find(function (s) { return s.username === payload.username; });
-    if (sesi && sesi.status === "SELESAI" && sesi.ujian_id === row.kode_ujian) {
+    // Guard konsisten dengan rpc_submit_ujian produksi: submit hanya sah saat sesi
+    // UJIAN INI (kode yang sama) masih ACTIVE. Mencegah submit ganda menimpa sesi ujian lain.
+    if (!sesi || sesi.status !== "ACTIVE" || (sesi.ujian_id && sesi.ujian_id !== row.kode_ujian)) {
       return { ok: false, error: "Sesi tidak aktif — jawaban sudah dikumpulkan." };
     }
-    if (sesi) { sesi.status = "SELESAI"; sesi.ujian_id = row.kode_ujian || sesi.ujian_id; }
+    sesi.status = "SELESAI"; sesi.ujian_id = row.kode_ujian || sesi.ujian_id;
     saveMock(db);
     return { ok: true, data: { benar: hitung, total: total, nilai: nilai } };
   }
@@ -449,7 +459,7 @@
     switch (action) {
       case "login-admin": return mockLoginAdmin(payload.username, payload.password);
       case "login-siswa": return mockLoginSiswa(payload.username, payload.password, payload.kode);
-      case "mulai-ujian": return mockMulaiUjian(payload.username, payload.kode, payload.token);
+      case "mulai-ujian": return mockMulaiUjian(payload.username, payload.kode, payload.token, payload.session_id);
       case "bank-soal": return mockGetBankSoal();
       case "simpan-soal": return mockSimpanSoal(payload.soal);
       case "hapus-soal": return mockHapusSoal(payload.id);
@@ -559,8 +569,9 @@
 
   function dispatch(action, payload, isRetry) {
     if (AppConfig.BACKEND !== "supabase" || !AppConfig.SUPABASE_URL || !AppConfig.SUPABASE_ANON_KEY) {
+      var p = Object.assign({}, payload, { session_id: AppSession.get() || null });
       return Promise.resolve().then(function () {
-        return mockHandle(action, payload); // resolve ok:false -> diproses pemanggil
+        return mockHandle(action, p); // resolve ok:false -> diproses pemanggil
       });
     }
     return supabaseRequest(action, payload);
