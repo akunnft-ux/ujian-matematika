@@ -19,8 +19,8 @@ backend nyata multi-perangkat: **Supabase** — lihat `docs/SETUP-SUPABASE.md`
 | File | Fungsi |
 |---|---|
 | `index.html` | Siswa: login username+password+kode → konfirmasi data + token → ujian → hasil |
-| `guru.html` | Guru: bank soal, upload .docx/.xlsx, tambah/edit soal, buat ujian, lihat hasil |
-| `admin.html` | Admin: monitor live, aktifkan ujian & generate token, reset login, tambah akun guru, lihat semua hasil |
+| `guru.html` | Guru: bank soal, upload .docx/.xlsx, tambah/edit soal, buat ujian, lihat hasil, lihat data siswa |
+| `admin.html` | Admin: monitor live, aktifkan ujian & generate token, reset login, tambah akun guru, lihat semua hasil & data siswa |
 
 ## Struktur
 

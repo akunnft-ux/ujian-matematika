@@ -728,6 +728,26 @@ begin
   return json_build_object('ok', true, 'data', v_out);
 end $$;
 
+create or replace function public.rpc_get_siswa(p_payload jsonb default '{}'::jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_role text;
+  v_out jsonb;
+begin
+  v_role := public.sesi_role(p_payload->>'session_id');
+  if v_role is null or v_role not in ('admin','guru') then
+    return json_build_object('ok', false, 'error', 'Khusus guru/admin.');
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'username', ku.username, 'nis', ku.nis, 'nama', ku.nama,
+           'kelas', ku.kelas, 'ujianId', ku.ujian_id) order by ku.nama), '[]'::jsonb)
+    into v_out
+  from public.kode_ujian ku;
+  return json_build_object('ok', true, 'data', v_out);
+end $$;
+
 create or replace function public.rpc_get_users(p_payload jsonb default '{}'::jsonb)
 returns json
 language plpgsql security definer set search_path = public, extensions

@@ -47,6 +47,7 @@
     <nav class="tabs" id="tabs">
       <button class="tab active" data-tab="bank"><i class="fa-solid fa-book"></i> Bank Soal</button>
       <button class="tab" data-tab="upload"><i class="fa-solid fa-upload"></i> Upload</button>
+      <button class="tab" data-tab="datasiswa"><i class="fa-solid fa-users"></i> Data Siswa</button>
       <button class="tab" data-tab="tambah"><i class="fa-solid fa-square-plus"></i> Tambah Soal</button>
       <button class="tab" data-tab="ujian"><i class="fa-solid fa-screwdriver-wrench"></i> Buat Ujian</button>
       <button class="tab" data-tab="hasil"><i class="fa-solid fa-chart-column"></i> Hasil</button>
@@ -103,6 +104,23 @@
           <input type="file" id="fileXlsx" accept=".xlsx,.xls" class="hidden">
           <div id="xlsxResult" class="mt"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ===== DATA SISWA ===== -->
+    <section id="tab-datasiswa" class="tab-panel hidden">
+      <div class="card">
+        <h3 class="card-title">Data Siswa</h3>
+        <p class="card-sub">Seluruh siswa hasil upload Excel. Gunakan filter kelas atau pencarian untuk mempersempit tampilan.</p>
+        <div class="flex" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+          <select id="dsKelas" class="input" style="max-width:180px"><option value="">Semua kelas</option></select>
+          <div class="input-icon-wrap" style="max-width:260px; flex:1 1 200px; min-width:160px;">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input id="dsCari" class="input" placeholder="Cari nama / NIS / username...">
+          </div>
+          <button id="btnRefreshSiswa" class="btn btn-outline" style="margin-left:auto">⟳ Refresh</button>
+        </div>
+        <div id="dsBox" class="table-wrap"></div>
       </div>
     </section>
 
@@ -288,6 +306,7 @@
     document.querySelectorAll(".tab-panel").forEach(function (p) { p.classList.add("hidden"); });
     document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
     if (btn.dataset.tab === "bank") muatBankSoal();
+    if (btn.dataset.tab === "datasiswa") muatDataSiswa();
     if (btn.dataset.tab === "hasil") muatHasil();
     if (btn.dataset.tab === "ujian") { muatBankSoal(); renderUjianList(); }
   });
@@ -450,6 +469,58 @@ function renderBank() {
     else if (btn.id === "bankNext") { bankPage++; renderBank(); }
     else if (btn.classList.contains("pager-num")) { bankPage = parseInt(btn.dataset.page, 10) || 1; renderBank(); }
   });
+
+  /* ===== DATA SISWA (semua data upload Excel) ===== */
+  var siswaData = [];
+  function muatDataSiswa() {
+    AppAPI.call("get-siswa").then(function (res) {
+      if (!res.ok) { document.getElementById("dsBox").innerHTML = '<div class="muted">' + esc(res.error || "Gagal memuat data siswa") + "</div>"; return; }
+      siswaData = res.data || [];
+      isiFilterKelasSiswa();
+      renderDataSiswa();
+    }).catch(function (err) {
+      document.getElementById("dsBox").innerHTML = '<div class="muted">' + esc(err.message) + "</div>";
+    });
+  }
+
+  function isiFilterKelasSiswa() {
+    var kelasSet = [...new Set(siswaData.map(function (s) { return s.kelas; }))].filter(Boolean);
+    var sel = document.getElementById("dsKelas");
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">Semua kelas</option>' +
+      kelasSet.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "</option>"; }).join("");
+    if (prev) sel.value = prev;
+  }
+
+  function filterDataSiswa() {
+    var kelas = document.getElementById("dsKelas").value;
+    var q = document.getElementById("dsCari").value.trim().toLowerCase();
+    return siswaData.filter(function (s) {
+      if (kelas && (s.kelas || "") !== kelas) return false;
+      if (q) {
+        var hay = ((s.nama || "") + " " + (s.nis || "") + " " + (s.username || "")).toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderDataSiswa() {
+    var list = filterDataSiswa();
+    var box = document.getElementById("dsBox");
+    if (!list.length) {
+      box.innerHTML = '<div class="muted center">' + (siswaData.length ? "Tidak ada data yang cocok dengan filter / pencarian." : "Belum ada data siswa. Upload .xlsx di tab Upload.") + "</div>";
+      return;
+    }
+    box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Username</th><th>Kelas</th><th>Kode Ujian</th></tr></thead><tbody>" +
+      list.map(function (s) {
+        return "<tr><td>" + esc(s.nama) + "</td><td>" + esc(s.nis || "-") + "</td><td><code>" + esc(s.username) + "</code></td><td>" + (s.kelas ? "<span class='badge badge-slate'>" + esc(s.kelas) + "</span>" : "-") + "</td><td class='muted'>" + esc(s.ujianId || "-") + "</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  document.getElementById("dsKelas").addEventListener("change", renderDataSiswa);
+  document.getElementById("dsCari").addEventListener("input", renderDataSiswa);
+  document.getElementById("btnRefreshSiswa").addEventListener("click", muatDataSiswa);
 
   /* ===== UPLOAD DOCX ===== */
   var dzDocx = document.getElementById("dzDocx");

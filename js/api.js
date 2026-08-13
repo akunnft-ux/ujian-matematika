@@ -334,6 +334,14 @@
     });
     return { ok: true, data: hasil };
   }
+  function mockGetSiswa() {
+    return { ok: true, data: (loadMock().kodeUjian || []).map(function (k) {
+      return {
+        username: k.username, nis: k.nis || "",
+        nama: k.nama, kelas: k.kelas || "", ujianId: k.ujianId || ""
+      };
+    }) };
+  }
   function mockGetUsers() { return { ok: true, data: (loadMock().users || []).slice() }; }
   function mockTambahUser(user) {
     var db = loadMock();
@@ -412,6 +420,7 @@
       case "reset-login": return mockResetLogin(payload.username);
       case "get-progress": return mockGetProgress();
       case "get-hasil": return mockGetHasil();
+      case "get-siswa": return mockGetSiswa();
       case "get-users": return mockGetUsers();
       case "tambah-user": return mockTambahUser(payload.user);
       case "hapus-user": return mockHapusUser(payload.username);
@@ -438,6 +447,7 @@
     "reset-login": "rpc_reset_login",
     "get-progress": "rpc_get_progress",
     "get-hasil": "rpc_get_hasil",
+    "get-siswa": "rpc_get_siswa",
     "get-users": "rpc_get_users",
     "tambah-user": "rpc_tambah_user",
     "hapus-user": "rpc_hapus_user",

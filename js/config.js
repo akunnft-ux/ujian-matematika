@@ -35,6 +35,7 @@ var AppConfig = {
     buatUjian: true,           // pilih soal bank -> ujian
     nilaiAkhirSaja: true,      // siswa tidak dapat feedback per soal
     adminTambahUser: true,     // admin menambah akun guru
+    dataSiswa: true,           // tab Data Siswa di guru & admin (filter kelas + pencarian)
     monitorLive: true,         // admin melihat progress live
     resetLoginAdmin: true      // admin mereset login siswa
   },
