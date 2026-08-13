@@ -21,11 +21,14 @@ create extension if not exists pgcrypto;
 -- ============================================================
 
 -- Akun guru & admin
+-- pass_plain = password teks biasa (agar admin bisa melihat password guru lewat UI).
+-- Hanya diekspos lewat RPC rpc_get_users (khusus admin). Jangan direferensikan dari klien lain.
 create table if not exists public.users (
-  username text primary key,
-  pass_hash text not null,
-  role     text not null check (role in ('admin','guru')),
-  aktif    boolean not null default true
+  username   text primary key,
+  pass_hash  text not null,
+  pass_plain text not null default '',
+  role       text not null check (role in ('admin','guru')),
+  aktif      boolean not null default true
 );
 
 -- Bank soal (blok teks/latex/gambar)
@@ -833,7 +836,8 @@ begin
     return json_build_object('ok', false, 'error', 'Khusus admin.');
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
-           'username', u.username, 'role', u.role, 'aktif', u.aktif) order by u.username), '[]'::jsonb)
+           'username', u.username, 'role', u.role, 'aktif', u.aktif,
+           'pass', coalesce(u.pass_plain, '')) order by u.username), '[]'::jsonb)
     into v_out from public.users u;
   return json_build_object('ok', true, 'data', v_out);
 end $$;
@@ -859,8 +863,9 @@ begin
   if exists (select 1 from public.users where username = v_username) then
     return json_build_object('ok', false, 'error', 'Username sudah ada');
   end if;
-  insert into public.users (username, pass_hash, role, aktif)
+  insert into public.users (username, pass_hash, pass_plain, role, aktif)
   values (v_username, encode(digest(v_user->>'passHash', 'sha256'), 'hex'),
+          coalesce(v_user->>'passHash', ''),
           coalesce(v_user->>'role', 'guru'), coalesce(v_user->>'aktif', 'true')::boolean);
   return json_build_object('ok', true);
 end $$;

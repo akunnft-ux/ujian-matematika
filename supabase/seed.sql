@@ -4,10 +4,10 @@
 -- ============================================================
 
 -- Akun staf demo: admin/admin , guru/guru
-insert into public.users (username, pass_hash, role, aktif)
+insert into public.users (username, pass_hash, pass_plain, role, aktif)
 values
-  ('admin', encode(digest('admin', 'sha256'), 'hex'), 'admin', true),
-  ('guru',  encode(digest('guru',  'sha256'), 'hex'), 'guru',  true)
+  ('admin', encode(digest('admin', 'sha256'), 'hex'), 'admin', 'admin', true),
+  ('guru',  encode(digest('guru',  'sha256'), 'hex'), 'guru',  'guru',  true)
 on conflict (username) do nothing;
 
 -- Bank soal contoh (2 soal)
