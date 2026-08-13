@@ -55,20 +55,6 @@ var AppConfig = {
     card: "#ffffff"
   },
 
-  /* ---------------- KONSTANTA SHEET (nama tab) ----------------
-   * Wajib SAMA dengan yang dipakai di apps-script/Code.gs
-   * ---------------------------------------------------------- */
-  SHEETS: {
-    Users: "Users",
-    SoalBank: "SoalBank",
-    Ujian: "Ujian",
-    SoalUjian: "SoalUjian",
-    KodeUjian: "KodeUjian",
-    Sesi: "Sesi",
-    Jawaban: "Jawaban",
-    Hasil: "Hasil",
-    Config: "Config"
-  }
 };
 
 /* Feature flag helper */

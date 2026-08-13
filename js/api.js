@@ -257,6 +257,13 @@
     saveMock(db);
     return { ok: true };
   }
+  /** Token ujian acak pendek: tepat n karakter A-Z/2-9 (mis. 4 -> "12HJ"). */
+  function mockToken(n) {
+    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var t = "";
+    for (var i = 0; i < n; i++) t += chars.charAt(Math.floor(Math.random() * chars.length));
+    return t;
+  }
   function mockAktifkanUjian(id) {
     var db = loadMock();
     var ujian = (db.ujian || []).find(function (u) { return u.id === id; });
@@ -267,7 +274,7 @@
       return s && s.status === "aktif";
     });
     if (!adaAktif) return { ok: false, error: "Tidak ada soal aktif pada ujian ini. Aktifkan dulu soal di bank soal (guru)." };
-    if (!ujian.token) ujian.token = "TKN-" + Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!ujian.token) ujian.token = "TKN-" + mockToken(4);
     ujian.status = "aktif";
     saveMock(db);
     return { ok: true, data: { ujian: ujian, token: ujian.token } };

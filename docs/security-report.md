@@ -44,7 +44,6 @@ Banyak `innerHTML` memakai data user (username, nama, kode, token, hasil, kelas,
 - Tidak ada rate-limit pada login. Rekomendasi: throttle per-IP/per-username.
 
 ## Remaining Known Issues (non-blocking)
-- `apps-script/Code.gs` masih file legacy (tidak terpakai oleh webapp).
 - Alert/confirm menggunakan dialog browser (bukan risk) — tidak diubah.
 
 ## Deployment Note

@@ -519,7 +519,7 @@ begin
   end if;
   v_token := btrim(v_ujian.token);
   if v_token = '' then
-    v_token := 'TKN-' || upper(left(replace(gen_random_uuid()::text, '-', ''), 8));
+    v_token := 'TKN-' || upper(left(replace(gen_random_uuid()::text, '-', ''), 4));
     update public.ujian set token = v_token where id = v_ujian.id;
   end if;
   update public.ujian set status = 'aktif' where id = v_ujian.id;

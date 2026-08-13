@@ -4,10 +4,10 @@
 
 | | |
 |---|---|
-| Tipe | Web application (web app statis + backend GAS) |
+| Tipe | Web application (web app statis + backend Supabase) |
 | Frontend | HTML + CSS + JS murni (tanpa build step, tanpa framework) |
-| Backend | Google Apps Script Web App (`apps-script/Code.gs`) |
-| Data store | Google Sheets (9 tab) |
+| Backend | Supabase (Postgres) via PostgREST RPC (`supabase/schema.sql`) |
+| Data store | Postgres (Supabase) |
 | Rendering matematika | KaTeX (CDN) |
 | Parsing .docx | JSZip + (opsional omml2mathml/mathml-to-latex) |
 | Parsing .xlsx | SheetJS |
@@ -27,31 +27,30 @@ KaTeX MathText, timer, navigasi soal).
 1. **Modular frontend**: tiap tanggung jawab satu file JS (config/api/auth/render/editor/parser).
    Feature flags di `js/config.js` → mudah menambah/mengurangi fitur.
 2. **Abstraksi backend**: semua komunikasi lewat `AppAPI.call(action, payload)`.
-   Mode demo (localStorage) ↔ backend nyata (GAS) di-swap hanya via `API_ENDPOINT` + `MOCK_MODE`.
+   Mode demo (localStorage) ↔ backend nyata (Supabase) di-swap hanya via `BACKEND` di `js/config.js`.
 3. **Queue + retry**: jawaban siswa masuk antrean `localStorage` → dikirim berurutan,
    tidak hilang saat offline.
 4. **Soal berbasis blok**: `{type: text|latex|image, value}` → renderer tunggal
    (`soal-render.js`) untuk siswa, bank soal, dan editor. Parser .docx menghasilkan format yang sama.
-5. **Anti login-ganda**: status sesi di tab `Sesi` (server-side), dibuat saat `mulai-ujian`
+5. **Anti login-ganda**: status sesi di tabel `sesi` (server-side), dibuat saat `mulai-ujian`
    (bukan saat login). Reload perangkat sama aman (sessionId di localStorage); perangkat lain
    ditolak sampai admin reset. Siswa yang sudah `SELESAI` tidak bisa mulai lagi.
-6. **Scoring server-side**: kunci jawaban hanya di `SoalBank` sheet; frontend tidak pernah
+6. **Scoring server-side**: kunci jawaban hanya di tabel `soal_bank`; frontend tidak pernah
    menerima kunci. Nilai dihitung saat submit.
 7. **Nilai di akhir**: tanpa feedback per soal → hemat request, siswa tidak dapat petunjuk.
 
-## Tab Google Sheets
+## Tabel Postgres (Supabase)
 
-| Tab | Kolom |
+| Tabel | Isi |
 |---|---|
-| Users | username, passHash, role, aktif |
-| SoalBank | id, mapel, jenjang, topik, kode, blocksJson, opsiJson, kunci, pembahasan, status, uploader, created |
-| Ujian | id, nama, kode, mapel, jenjang, durasiMenit, soalIdsJson, status, token, created |
-| SoalUjian | ujianId, soalId, urutan |
-| KodeUjian | username, password, nis, nama, kelas, ujianId, status |
-| Sesi | username, nis, status, login_ts, fingerprint |
-| Jawaban | username, nis, soalId, jawaban, ts |
-| Hasil | username, nis, nama, benar, total, nilai, ts |
-| Config | key, value |
+| `users` | username, pass_hash, role (admin/guru), aktif |
+| `soal_bank` | id, mapel, jenjang, topik, kode, blocks (jsonb), opsi (jsonb), kunci, pembahasan, status, uploader, created |
+| `ujian` | id, nama, kode, mapel, jenjang, durasi_menit, soal_ids (jsonb), status, token, created |
+| `kode_ujian` | akun siswa hasil upload guru: username, pass_hash, nis, nama, kelas, ujian_id, status |
+| `sesi` | status ujian siswa (INACTIVE/ACTIVE/SELESAI) per-ujian + login_ts + fingerprint |
+| `sessions` | token sesi login (siswa & staf) untuk otentikasi request |
+| `jawaban` | jawaban per soal (username, nis, soal_id, jawaban, ts) |
+| `hasil` | hasil akhir (username, nis, nama, kode_ujian, kelas, benar, total, nilai, ts) |
 
 ## Endpoint API (action)
 
@@ -64,11 +63,11 @@ KaTeX MathText, timer, navigasi soal).
 1. Guru upload data siswa (`upload-siswa`) → akun **username + password** (bukan token).
 2. Guru buat ujian (`buat-ujian`) → status `draft`, token kosong.
 3. Admin aktifkan ujian (`aktifkan-ujian`) → status `aktif` + **1 token per ujian**
-   (`TKN-XXXXXXXX`) untuk semua siswa.
+   (`TKN-XXXX`) untuk semua siswa.
 4. Siswa `login-siswa` dengan **username + password + kode ujian**. Login hanya mengecek
    kode valid + ujian `aktif`; siswa TIDAK ditautkan ke ujian. Belum `aktif` → ditolak.
 5. Siswa melihat konfirmasi data di layar `#screen-confirm`, lalu memasukkan token.
-6. `mulai-ujian` memvalidasi token (`Ujian.token`), cek status `aktif`/`SELESAI`, baru membuat
+6. `mulai-ujian` memvalidasi token (`ujian.token`), cek status `aktif`/`SELESAI`, baru membuat
    sesi `ACTIVE` (anti login-ganda) dan mengembalikan sessionId.
 
 ## Model data soal (blok)
