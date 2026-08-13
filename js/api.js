@@ -341,11 +341,15 @@
   function mockGetProgress() {
     var db = loadMock();
     var sesi = db.sesi || [];
+    var ujian = db.ujian || [];
     return { ok: true, data: (db.kodeUjian || []).map(function (k) {
       var s = sesi.find(function (x) { return x.username === k.username; });
+      var u = ujian.find(function (x) { return x.kode === k.ujianId; }) ||
+              ujian.find(function (x) { return x.id === k.ujianId; });
       return {
         username: k.username,
         nis: k.nis || "",
+        kode_ujian: u ? u.kode : (k.ujianId || ""),
         status: s ? s.status : "INACTIVE",
         login_ts: s ? s.login_ts : null,
         fingerprint: s ? s.fingerprint : ""

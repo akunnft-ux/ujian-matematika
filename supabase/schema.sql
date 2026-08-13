@@ -682,6 +682,7 @@ begin
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
            'username', ku.username, 'nis', ku.nis,
+           'kode_ujian', coalesce(ku.ujian_id, ''),
            'status', coalesce(s.status, 'INACTIVE'),
            'login_ts', s.login_ts, 'fingerprint', s.fingerprint) order by s.login_ts desc nulls last), '[]'::jsonb)
     into v_out

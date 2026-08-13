@@ -51,6 +51,18 @@
 
     <section id="tab-monitor" class="tab-panel">
       <div class="section-head"><h2>Monitoring</h2><button id="btnRefreshMonitor" class="btn btn-ghost">⟳ Refresh</button></div>
+      <div class="flex" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+        <select id="monStatus" class="input" style="max-width:190px">
+          <option value="">Semua status</option>
+          <option value="ACTIVE">Sedang mengerjakan</option>
+          <option value="SELESAI">Selesai</option>
+          <option value="INACTIVE">Belum ujian</option>
+        </select>
+        <div class="input-icon-wrap" style="max-width:280px; flex:1 1 200px; min-width:170px;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:14px;"></i>
+          <input id="monCari" class="input" placeholder="Cari NIS / username / kode ujian...">
+        </div>
+      </div>
       <div id="monitorBox"></div>
     </section>
 
@@ -187,16 +199,38 @@
     return { label: "Belum ujian", badge: "badge-slate" };
   }
   document.getElementById("btnRefreshMonitor").addEventListener("click", muatMonitor);
+  document.getElementById("monStatus").addEventListener("change", renderMonitor);
+  document.getElementById("monCari").addEventListener("input", renderMonitor);
+
+  var monData = [];
+  function renderMonitor() {
+    var box = document.getElementById("monitorBox");
+    if (!box) return;
+    var q = (document.getElementById("monCari").value || "").toLowerCase().trim();
+    var st = document.getElementById("monStatus").value;
+    var list = monData.filter(function (s) {
+      if (st && s.status !== st) return false;
+      if (q) {
+        var hay = [s.nis, s.username, s.kode_ujian].join(" ").toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+    if (!monData.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
+    if (!list.length) { box.innerHTML = '<div class="muted center">Tidak ada siswa yang cocok.</div>'; return; }
+    box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Kode Ujian</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
+      list.map(function (s) {
+        var sti = infoStatusSiswa(s.status);
+        return "<tr><td>" + esc(s.nis) + "</td><td>" + esc(s.username) + "</td><td><code>" + esc(s.kode_ujian || "-") + "</code></td><td><span class='badge " + sti.badge + "'>" + sti.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+  }
+
   function muatMonitor() {
     Promise.all([AppAPI.call("get-progress"), AppAPI.call("get-ujian")]).then(function (rs) {
-      var sesi = rs[0].data || [];
-      var box = document.getElementById("monitorBox");
-      if (!sesi.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
-      box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
-        sesi.map(function (s) {
-          var st = infoStatusSiswa(s.status);
-          return "<tr><td>" + esc(s.nis) + "</td><td>" + esc(s.username) + "</td><td><span class='badge " + st.badge + "'>" + st.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
-        }).join("") + "</tbody></table></div>";
+      monData = rs[0].data || [];
+      renderMonitor();
+    }).catch(function (err) {
+      document.getElementById("monitorBox").innerHTML = '<div class="muted">' + esc(err.message) + '</div>';
     });
   }
 
