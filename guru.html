@@ -512,9 +512,9 @@ function renderBank() {
       box.innerHTML = '<div class="muted center">' + (siswaData.length ? "Tidak ada data yang cocok dengan filter / pencarian." : "Belum ada data siswa. Upload .xlsx di tab Upload.") + "</div>";
       return;
     }
-    box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Username</th><th>Kelas</th><th>Kode Ujian</th></tr></thead><tbody>" +
+    box.innerHTML = "<table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Username</th><th>Kelas</th></tr></thead><tbody>" +
       list.map(function (s) {
-        return "<tr><td>" + esc(s.nama) + "</td><td>" + esc(s.nis || "-") + "</td><td><code>" + esc(s.username) + "</code></td><td>" + (s.kelas ? "<span class='badge badge-slate'>" + esc(s.kelas) + "</span>" : "-") + "</td><td class='muted'>" + esc(s.ujianId || "-") + "</td></tr>";
+        return "<tr><td>" + esc(s.nama) + "</td><td>" + esc(s.nis || "-") + "</td><td><code>" + esc(s.username) + "</code></td><td>" + (s.kelas ? "<span class='badge badge-slate'>" + esc(s.kelas) + "</span>" : "-") + "</td></tr>";
       }).join("") + "</tbody></table>";
   }
 
