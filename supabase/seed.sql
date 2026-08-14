@@ -29,7 +29,7 @@ on conflict (id) do nothing;
 
 -- Ujian demo EXM-2026-001 (status aktif + token TKN-DEMO)
 insert into public.ujian (id, nama, kode, mapel, jenjang, durasi_menit, soal_ids, status, token)
-values ('U-001', 'Ujian Matematika XII IPA', 'EXM-2026-001', 'Matematika', 'SMA', 60,
+values ('U-001', 'Ujian Matematika XII IPA', 'EXM-2026-001', 'Matematika', 'SMA', 90,
         '["S-001","S-002"]'::jsonb, 'aktif', 'TKN-DEMO')
 on conflict (kode) do nothing;
 

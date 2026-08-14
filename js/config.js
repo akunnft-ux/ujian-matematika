@@ -44,7 +44,7 @@ var AppConfig = {
   /* ---------------- UJIAN DEFAULT ---------------- */
   EXAM: {
     opsiLabel: ["A", "B", "C", "D", "E"],
-    defaultDurasiMenit: 60,
+    defaultDurasiMenit: 90,
     maxOpsi: 5,
     autoSubmitSaatWaktuHabis: true
   },

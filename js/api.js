@@ -39,14 +39,14 @@
       changed = true;
     }
     if (!db.bankSoal) { db.bankSoal = mockContohSoal(); changed = true; }
-    if (!db.ujian) {
-      db.ujian = [{
-        id: "U-001", nama: "Ujian Matematika XII IPA", kode: "EXM-2026-001",
-        mapel: "Matematika", jenjang: "SMA", durasiMenit: 60,
-        soalIds: ["S-001", "S-002"], status: "aktif", token: "TKN-DEMO"
-      }];
-      changed = true;
-    }
+  if (!db.ujian) {
+    db.ujian = [{
+      id: "U-001", nama: "Ujian Matematika XII IPA", kode: "EXM-2026-001",
+      mapel: "Matematika", jenjang: "SMA", durasiMenit: 90,
+      soalIds: ["S-001", "S-002"], status: "aktif", token: "TKN-DEMO"
+    }];
+    changed = true;
+  }
     if (!db.kodeUjian) {
       db.kodeUjian = [
         { username: "budi", password: "budi123", nis: "2026001", nama: "Budi Santoso", kelas: "XII IPA 1", ujianId: "EXM-2026-001", status: "belum" },
@@ -183,7 +183,7 @@
         });
       }
     }
-    var sisaDetik = (ujian.durasiMenit || 60) * 60 - Math.max(0, Math.floor((Date.now() - new Date(mulaiTs).getTime()) / 1000));
+    var sisaDetik = (ujian.durasiMenit || 90) * 60 - Math.max(0, Math.floor((Date.now() - new Date(mulaiTs).getTime()) / 1000));
     if (sisaDetik < 0) sisaDetik = 0;
     var jawabanLama = (db.jawaban || []).filter(function (j) {
       return j.username === siswa.username && (ujian.soalIds || []).indexOf(j.soalId) >= 0;

@@ -543,26 +543,39 @@ begin
   end if;
   v_token := btrim(v_ujian.token);
   if v_token = '' then
-    v_token := 'TKN-' || upper(left(replace(gen_random_uuid()::text, '-', ''), 4));
+    v_token := 'TKN-' || upper(left(replace(gen_random_uuid()::text, '-', ''), 8));
     update public.ujian set token = v_token where id = v_ujian.id;
   end if;
   update public.ujian set status = 'aktif' where id = v_ujian.id;
   return json_build_object('ok', true, 'data', json_build_object('id', v_ujian.id, 'token', v_token, 'status', 'aktif'));
 end $$;
-
 create or replace function public.rpc_selesai_ujian(p_payload jsonb)
 returns json
 language plpgsql security definer set search_path = public, extensions
 as $$
+
 declare
   v_role text;
+  v_ujian public.ujian%rowtype;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null or v_role <> 'admin' then
     return json_build_object('ok', false, 'error', 'Khusus admin.');
   end if;
+
+  -- Temukan ujian sebelum melakukan update
+  select * into v_ujian from public.ujian where id = p_payload->>'id';
+  if not found then
+    return json_build_object('ok', false, 'error', 'Ujian tidak ditemukan.');
+  end if;
+
+  -- Set ujian kembali ke draft
   update public.ujian set status = 'draft' where id = p_payload->>'id';
-  return json_build_object('ok', true, 'data', json_build_object('id', p_payload->>'id', 'status', 'draft'));
+
+  -- Reset status siswa ke INACTIVE untuk semua sesi ujian yang baru selesai
+  update public.sesi set status = 'INACTIVE' where ujian_id = v_ujian.kode;
+
+  return json_build_object('ok', true, 'data', json_build_object('id', p_payload->>'id', 'status', 'draft', 'activeSessionsReset', true));
 end $$;
 
 -- ============================================================
@@ -603,6 +616,7 @@ create or replace function public.rpc_submit_ujian(p_payload jsonb)
 returns json
 language plpgsql security definer set search_path = public, extensions
 as $$
+
 declare
   v_role text;
   v_ans  jsonb;
@@ -617,6 +631,10 @@ declare
   v_kode_ujian text;
   v_kelas text;
   v_sess_user text;
+  v_start_ts timestamptz;
+  v_durasi_menit integer;
+  v_sisa_detik integer;
+  v_elapsed integer;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null then
@@ -643,6 +661,18 @@ begin
                     where username = v_username and status = 'ACTIVE'
                       and ujian_id = coalesce(p_payload->>'kode', '')) then
       return json_build_object('ok', false, 'error', 'Sesi tidak aktif — jawaban sudah dikumpulkan atau belum mulai.');
+    end if;
+  end if;
+  -- Validasi waktu: pastikan sesi masih dalam batas waktu ujian
+  select mulai_ts, durasi_menit into v_start_ts, v_durasi_menit
+    from public.sesi join public.ujian on ujian.kode = sesi.ujian_id
+    where username = v_username and sesi.ujian_id = v_kode_ujian
+    limit 1;
+  if v_start_ts is not null and v_durasi_menit is not null then
+    v_sisa_detik := greatest(0, v_durasi_menit * 60 - extract(epoch from (now() - v_start_ts))::integer);
+    -- Cek apakah waktu sudah habis (sisaDetik <= 0 berarti waktu habis)
+    if v_sisa_detik <= 0 then
+      return json_build_object('ok', false, 'error', 'Waktu ujian telah berakhir. Tidak bisa mengirim jawaban.');
     end if;
   end if;
   v_ans := coalesce(p_payload->'jawaban', '[]'::jsonb);
