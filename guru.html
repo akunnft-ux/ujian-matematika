@@ -118,9 +118,9 @@
             <i class="fa-solid fa-magnifying-glass"></i>
             <input id="dsCari" class="input" placeholder="Cari nama / NIS / username...">
           </div>
-          <button id="btnRefreshSiswa" class="btn btn-outline" style="margin-left:auto">⟳ Refresh</button>
+          <button id="btnRefreshSiswa" class="btn btn-outline">⟳ Refresh</button>
+          <button id="btnGenerateKartu" class="btn btn-success" style="margin-left:auto">Generate Kartu</button>
         </div>
-        <div id="kartuFilterInfo" class="mt card" style="font-size:13px; margin-top:8px"></div>
         <div id="dsBox" class="table-wrap"></div>
       </div>
     </section>
@@ -1075,35 +1075,36 @@ function renderBank() {
       userbox.style.display = "none";
     });
   } else {
-userbox.style.display = "none";
-  })
+    userbox.style.display = "none";
+  }
 })();
-  <!-- MODAL GENERATE KARTU -->
-  <div class="modal-overlay" id="kartuModal">
-    <div class="modal" style="max-width:720px">
-      <div class="modal-header">
-        <h3>Generate Kartu Siswa</h3>
-        <button class="modal-close" id="kartuClose">×</button>
+</script>
+
+<!-- MODAL GENERATE KARTU -->
+<div class="modal-overlay" id="kartuModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3>Generate Kartu Siswa</h3>
+      <button class="modal-close" id="kartuClose">×</button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
+        <label for="kartuJumlah">Kartu per halaman:</label>
+        <select id="kartuJumlah" style="padding:4px 8px; border-radius:6px">
+          <option value="6">6 kartu</option>
+          <option value="8">8 kartu</option>
+        </select>
       </div>
-      <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
-        <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
-          <label for="kartuJumlah">Kartu per halaman:</label>
-          <select id="kartuJumlah" style="padding:4px 8px; border-radius:6px">
-            <option value="6">6 kartu</option>
-            <option value="8">8 kartu</option>
-          </select>
-        </div>
-        <div id="kartuFilterInfo" class="mt card" style="font-size:13px"></div>
-        <div id="kartuPreview" class="mt" style="min-height:120px"></div>
-        <div id="kartuPrintArea" class="print-area kartu-grid kartu-grid--6"></div>
-      </div>
-      <div class="modal-footer" style="justify-content:space-between">
-        <button id="kartuGenerate" class="btn btn-success">Generate & Simpan</button>
-        <button id="kartuCetak" class="btn btn-primary" style="display:none">Cetak / Simpan PDF</button>
-        <button id="kartuCancel" class="btn btn-ghost">Batal</button>
-      </div>
+      <div id="kartuFilterInfo" class="mt card" style="font-size:13px"></div>
+      <div id="kartuPreview" class="mt" style="min-height:120px"></div>
+      <div id="kartuPrintArea" class="print-area kartu-grid kartu-grid--6"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button id="kartuGenerate" class="btn btn-success">Generate & Simpan</button>
+      <button id="kartuCetak" class="btn btn-primary" style="display:none">Cetak / Simpan PDF</button>
+      <button id="kartuCancel" class="btn btn-ghost">Batal</button>
     </div>
   </div>
-</script>
+</div>
 </body>
 </html>
