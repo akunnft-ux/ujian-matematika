@@ -228,10 +228,15 @@
     </div>
     <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
       <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
+        <label for="kartuNama">Nama Ujian:</label>
+        <input id="kartuNama" class="input" placeholder="Ujian Matematika" style="flex:1">
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
         <label for="kartuJumlah">Kartu per halaman:</label>
         <select id="kartuJumlah" style="padding:4px 8px; border-radius:6px">
           <option value="6">6 kartu</option>
           <option value="8">8 kartu</option>
+          <option value="10">10 kartu</option>
         </select>
       </div>
       <div id="kartuFilterInfo" class="mt card" style="font-size:13px"></div>
@@ -552,7 +557,7 @@ function renderBank() {
 
   /* ===== GENERATE KARTU SISWA (guru) ===== */
   var kartuDataGuru = [];
-  var kartuJumlah = 6; // default 6 per halaman
+  var kartuJumlah = 10; // default 10 per halaman
   document.getElementById("btnGenerateKartu").addEventListener("click", function () {
     var kelas = document.getElementById("dsKelas").value;
     var q = document.getElementById("dsCari").value.trim().toLowerCase();
@@ -567,9 +572,9 @@ function renderBank() {
     kartuDataGuru = filtered;
     if (!kartuDataGuru.length) {
       document.getElementById("kartuFilterInfo").innerHTML = '<div class="alert alert-warn">Tidak ada siswa yang cocok dengan filter / pencarian.</div>';
-      document.getElementById("kartuJumlah").value = "6";
+      document.getElementById("kartuJumlah").value = "10";
       document.getElementById("kartuPreview").innerHTML = "";
-      document.getElementById("kartuPrintArea").className = "print-area kartu-grid kartu-grid--6";
+      document.getElementById("kartuPrintArea").className = "print-area kartu-grid kartu-grid--10";
       document.getElementById("kartuGenerate").style.display = "inline-block";
       document.getElementById("kartuCetak").style.display = "none";
       document.getElementById("kartuModal").classList.add("open");
@@ -577,18 +582,20 @@ function renderBank() {
     }
     document.getElementById("kartuFilterInfo").innerHTML = '<div class="alert alert-success">Menghasilkan kartu untuk ' + kartuDataGuru.length + ' siswa</div>';
     // Render preview kartu (tanpa password asli, hanya placeholder)
+    document.getElementById("kartuNama").value = "";
     renderKartuPreviewGuru();
-    document.getElementById("kartuJumlah").value = "6";
-    document.getElementById("kartuPrintArea").className = "print-area kartu-grid kartu-grid--6";
+    document.getElementById("kartuJumlah").value = "10";
     document.getElementById("kartuGenerate").style.display = "inline-block";
     document.getElementById("kartuCetak").style.display = "none";
     document.getElementById("kartuModal").classList.add("open");
+    document.getElementById("kartuNama").focus();
   });
 
   function renderKartuPreviewGuru() {
     var jumlah = parseInt(document.getElementById("kartuJumlah").value) || 6;
-    var gridClass = jumlah === 8 ? "kartu-grid--8" : "kartu-grid--6";
+    var gridClass = jumlah === 8 ? "kartu-grid--8" : (jumlah === 10 ? "kartu-grid--10" : "kartu-grid--6");
     document.getElementById("kartuPrintArea").className = "print-area kartu-grid " + gridClass;
+    var namaUjian = document.getElementById("kartuNama").value.trim() || "Ujian Matematika";
     var html = kartuDataGuru.map(function (s) {
       // Preview: password masih akan digenerate, jadi kita tampilkan placeholder
       var passwordPlaceholder = "••••••••";
@@ -596,7 +603,7 @@ function renderBank() {
         "<div class='head'>" +
           "<div class='logo'>A</div>" +
           "<div>" +
-            "<div class='school'>Ujian Matematika</div>" +
+            "<div class='school'>" + esc(namaUjian) + "</div>" +
             "<div class='nama'>" + esc(s.nama) + "</div>" +
             "<div class='meta'>NIS: " + esc(s.nis || "-") + " | Kelas: " + (s.kelas || "-") + "</div>" +
           "</div>" +
@@ -611,15 +618,16 @@ function renderBank() {
   }
 
   function renderKartuPrintGuru(jumlah) {
-    var gridClass = jumlah === 8 ? "kartu-grid--8" : "kartu-grid--6";
+    var gridClass = jumlah === 8 ? "kartu-grid--8" : (jumlah === 10 ? "kartu-grid--10" : "kartu-grid--6");
     document.getElementById("kartuPrintArea").className = "print-area kartu-grid " + gridClass;
+    var namaUjian = document.getElementById("kartuNama").value.trim() || "Ujian Matematika";
     var html = kartuDataGuru.map(function (s) {
       var password = s.password || "••••••••";
       return "<div class='kartu'>" +
         "<div class='head'>" +
           "<div class='logo'>A</div>" +
           "<div>" +
-            "<div class='school'>Ujian Matematika</div>" +
+            "<div class='school'>" + esc(namaUjian) + "</div>" +
             "<div class='nama'>" + esc(s.nama) + "</div>" +
             "<div class='meta'>NIS: " + esc(s.nis || "-") + " | Kelas: " + (s.kelas || "-") + "</div>" +
           "</div>" +
@@ -637,6 +645,10 @@ function renderBank() {
     var jumlah = parseInt(this.value) || 6;
     renderKartuPrintGuru(jumlah);
     kartuJumlah = jumlah;
+  });
+
+  document.getElementById("kartuNama").addEventListener("input", function () {
+    renderKartuPreviewGuru();
   });
 
   document.getElementById("kartuGenerate").addEventListener("click", function () {
@@ -678,7 +690,7 @@ function renderBank() {
   });
 
   /* Mengatur jumlah kartu per halaman awal */
-  document.getElementById("kartuJumlah").value = "6";
+  document.getElementById("kartuJumlah").value = "10";
 
   /* ===== UPLOAD DOCX ===== */
   var dzDocx = document.getElementById("dzDocx");

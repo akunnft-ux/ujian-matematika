@@ -534,7 +534,7 @@ table.data tr:hover td { background: var(--brand-50); }
 }
 
 /* ============================================================
- * Kartu Siswa Print (A4, 6–8 kartu per halaman)
+ * Kartu Siswa Print (A4, 6–10 kartu per halaman)
  * ============================================================ */
 .kartu-grid {
   display: grid;
@@ -543,6 +543,7 @@ table.data tr:hover td { background: var(--brand-50); }
 }
 .kartu-grid--6 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, auto); }
 .kartu-grid--8 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, auto); }
+.kartu-grid--10 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, auto); }
 .kartu {
   background: var(--card);
   border: 1px solid var(--border);
@@ -590,6 +591,9 @@ table.data tr:hover td { background: var(--brand-50); }
   line-height: 1.4;
 }
 .kartu .user { color: var(--brand-700); font-weight: 700; }
+.kartu-grid--10 .kartu { padding: 10px 10px; }
+.kartu-grid--10 .kartu .head { margin-bottom: 6px; padding-bottom: 6px; }
+.kartu-grid--10 .kartu .kredensial { padding: 4px 6px; margin: 4px 0; font-size: 10px; }
 
 @media print {
   body * { visibility: hidden; }
