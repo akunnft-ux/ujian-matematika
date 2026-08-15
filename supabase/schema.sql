@@ -69,12 +69,17 @@ create table if not exists public.ujian (
 create table if not exists public.kode_ujian (
   username text primary key,
   pass_hash text not null,
+  pass_plain text not null default '',
   nis       text not null default '',
   nama      text not null default '',
   kelas     text not null default '',
   ujian_id  text not null default '',
   status    text not null default 'belum'
 );
+
+-- Migrasi untuk DB lama yang tabel kode_ujian-nya sudah ada (create table if not exists
+-- tidak menambah kolom). Wajib agar rpc_generate_kartu tidak error "column does not exist".
+alter table public.kode_ujian add column if not exists pass_plain text not null default '';
 
 -- Status sesi ujian siswa (anti login-ganda)
 -- ujian_id = kode ujian sesi ini; guard ACTIVE/SELESAI bersifat per-ujian
