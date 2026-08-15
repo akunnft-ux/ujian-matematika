@@ -590,8 +590,6 @@ table.data tr:hover td { background: var(--brand-50); }
   line-height: 1.4;
 }
 .kartu .user { color: var(--brand-700); font-weight: 700; }
-.kartu .footer { margin-top: 8px; font-size: 10px; color: var(--slate-500); text-align: right; }
-.kartu .footer .kode { font-weight: 700; color: var(--brand-700); }
 
 @media print {
   body * { visibility: hidden; }

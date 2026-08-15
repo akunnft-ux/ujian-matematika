@@ -605,7 +605,6 @@ function renderBank() {
           "Username: <span class='user'>" + esc(s.username) + "</span><br>" +
           "Password: " + passwordPlaceholder +
         "</div>" +
-        "<div class='footer'>Kode: " + (s.ujianId || "-") + "</div>" +
       "</div>";
     }).join("");
     document.getElementById("kartuPrintArea").innerHTML = html;
@@ -629,7 +628,6 @@ function renderBank() {
           "Username: <span class='user'>" + esc(s.username) + "</span><br>" +
           "Password: " + password +
         "</div>" +
-        "<div class='footer'>Kode: " + (s.ujianId || "-") + "</div>" +
       "</div>";
     }).join("");
     document.getElementById("kartuPrintArea").innerHTML = html;
