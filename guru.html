@@ -600,17 +600,17 @@ function renderBank() {
       // Preview: password masih akan digenerate, jadi kita tampilkan placeholder
       var passwordPlaceholder = "••••••••";
       return "<div class='kartu'>" +
-        "<div class='head'>" +
-          "<div class='logo'>A</div>" +
-          "<div>" +
-            "<div class='school'>" + esc(namaUjian) + "</div>" +
-            "<div class='nama'>" + esc(s.nama) + "</div>" +
-            "<div class='meta'>NIS: " + esc(s.nis || "-") + " | Kelas: " + (s.kelas || "-") + "</div>" +
+        "<div class='card-header'>" + esc(namaUjian) + "</div>" +
+        "<div class='card-body'>" +
+          "<table class='info-table'>" +
+            "<tr><td class='info-label'>Nama</td><td class='info-colon'>:</td><td class='info-value'>" + esc(s.nama) + "</td></tr>" +
+            "<tr><td class='info-label'>NIS</td><td class='info-colon'>:</td><td class='info-value'>" + esc(s.nis || "-") + "</td></tr>" +
+            "<tr><td class='info-label'>Kelas</td><td class='info-colon'>:</td><td class='info-value'>" + esc(s.kelas || "-") + "</td></tr>" +
+          "</table>" +
+          "<div class='credentials'>" +
+            "<span class='cred-item'>User: <span class='cred-val'>" + esc(s.username) + "</span></span>" +
+            "<span class='cred-item'>Pass: <span class='cred-val'>" + passwordPlaceholder + "</span></span>" +
           "</div>" +
-        "</div>" +
-        "<div class='kredensial'>" +
-          "Username: <span class='user'>" + esc(s.username) + "</span><br>" +
-          "Password: " + passwordPlaceholder +
         "</div>" +
       "</div>";
     }).join("");
@@ -624,17 +624,17 @@ function renderBank() {
     var html = kartuDataGuru.map(function (s) {
       var password = s.password || "••••••••";
       return "<div class='kartu'>" +
-        "<div class='head'>" +
-          "<div class='logo'>A</div>" +
-          "<div>" +
-            "<div class='school'>" + esc(namaUjian) + "</div>" +
-            "<div class='nama'>" + esc(s.nama) + "</div>" +
-            "<div class='meta'>NIS: " + esc(s.nis || "-") + " | Kelas: " + (s.kelas || "-") + "</div>" +
+        "<div class='card-header'>" + esc(namaUjian) + "</div>" +
+        "<div class='card-body'>" +
+          "<table class='info-table'>" +
+            "<tr><td class='info-label'>Nama</td><td class='info-colon'>:</td><td class='info-value'>" + esc(s.nama) + "</td></tr>" +
+            "<tr><td class='info-label'>NIS</td><td class='info-colon'>:</td><td class='info-value'>" + esc(s.nis || "-") + "</td></tr>" +
+            "<tr><td class='info-label'>Kelas</td><td class='info-colon'>:</td><td class='info-value'>" + esc(s.kelas || "-") + "</td></tr>" +
+          "</table>" +
+          "<div class='credentials'>" +
+            "<span class='cred-item'>User: <span class='cred-val'>" + esc(s.username) + "</span></span>" +
+            "<span class='cred-item'>Pass: <span class='cred-val'>" + password + "</span></span>" +
           "</div>" +
-        "</div>" +
-        "<div class='kredensial'>" +
-          "Username: <span class='user'>" + esc(s.username) + "</span><br>" +
-          "Password: " + password +
         "</div>" +
       "</div>";
     }).join("");

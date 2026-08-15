@@ -545,64 +545,77 @@ table.data tr:hover td { background: var(--brand-50); }
 .kartu-grid--8 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, auto); }
 .kartu-grid--10 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(5, auto); }
 .kartu {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 12px;
+  background: #f8fafc;
+  border: 1px dashed #a0aec0;
+  border-radius: 6px;
+  overflow: hidden;
   break-inside: avoid;
   page-break-inside: avoid;
-  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.kartu .card-header {
+  background-color: #1e3a8a;
+  color: #ffffff;
+  text-align: center;
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #1e40af;
+}
+.kartu .card-body {
+  padding: 4px 10px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100%;
 }
-.kartu .head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-.kartu .head .logo {
-  width: 28px; height: 28px;
-  background: var(--brand-100);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  color: var(--brand-700);
-  flex-shrink: 0;
-}
-.kartu .head .school { font-size: 10px; color: var(--slate-500); }
-.kartu .content { flex: 1; }
-.kartu .nama { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-.kartu .meta { font-size: 11px; color: var(--slate-600); margin-bottom: 6px; }
-.kartu .meta span { display: block; }
-.kartu .kredensial {
-  background: var(--slate-100);
-  border-radius: var(--radius-sm);
-  padding: 6px 8px;
-  margin: 6px 0;
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+.kartu .info-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 11px;
-  line-height: 1.4;
+  margin-bottom: 4px;
 }
-.kartu .user { color: var(--brand-700); font-weight: 700; }
-.kartu-grid--10 .kartu { padding: 10px 10px; }
-.kartu-grid--10 .kartu .head { margin-bottom: 6px; padding-bottom: 6px; }
-.kartu-grid--10 .kartu .kredensial { padding: 4px 6px; margin: 4px 0; font-size: 10px; }
+.kartu .info-table td { padding: 1px 0; vertical-align: top; }
+.kartu .info-label { width: 18%; font-weight: 600; color: #475569; }
+.kartu .info-colon { width: 5%; }
+.kartu .info-value { width: 77%; font-weight: bold; color: #0f172a; }
+.kartu .credentials {
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #cbd5e1;
+  margin-top: 2px;
+}
+.kartu .cred-item { display: inline-block; margin: 0 6px; font-size: 10px; color: #334155; }
+.kartu .cred-val {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  color: #b91c1c;
+  background: #ffffff;
+  padding: 1px 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+.kartu-grid--10 .kartu .card-header { padding: 3px 0; font-size: 10px; }
+.kartu-grid--10 .kartu .card-body { padding: 3px 8px; }
+.kartu-grid--10 .kartu .info-table { font-size: 10px; }
+.kartu-grid--10 .kartu .credentials { padding: 3px; }
+.kartu-grid--10 .kartu .cred-item { font-size: 9px; margin: 0 3px; }
 
 @media print {
   body * { visibility: hidden; }
   .print-area, .print-area * { visibility: visible; }
   .print-area {
     position: absolute; inset: 0;
-    padding: 8mm;
+    padding: 0;
     font-size: 12px;
   }
-  @page { size: A4 portrait; margin: 8mm; }
+  @page { size: A4 portrait; margin: 5mm 10mm; }
   .kartu { break-inside: avoid; page-break-inside: avoid; }
 }
