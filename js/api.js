@@ -295,6 +295,23 @@
     return { ok: true, data: { id: id, status: "draft" } };
   }
 
+  function mockResetApp(payload) {
+    var db = loadMock();
+    var mode = payload.mode === "semua" ? "semua" : "data";
+    var guruHapus = (db.users || []).filter(function (u) { return u.role === "guru"; }).length;
+    var bankSoalHapus = mode === "semua" ? (db.bankSoal || []).length : 0;
+    db.users = (db.users || []).filter(function (u) { return u.role === "admin"; });
+    if (mode === "semua") db.bankSoal = [];
+    db.ujian = [];
+    db.kodeUjian = [];
+    db.sesi = [];
+    db.jawaban = [];
+    db.hasil = [];
+    db.resetRequests = [];
+    saveMock(db);
+    return { ok: true, data: { mode: mode, guruDihapus: guruHapus, bankSoalDihapus: bankSoalHapus } };
+  }
+
   function mockResetLogin(username) {
     var db = loadMock();
     var punyaHasil = (db.hasil || []).some(function (h) { return h.username === username; });
@@ -493,6 +510,7 @@
       case "hapus-ujian": return mockHapusUjian(payload.id);
       case "aktifkan-ujian": return mockAktifkanUjian(payload.id);
       case "selesai-ujian": return mockSelesaiUjian(payload.id);
+      case "reset-app": return mockResetApp(payload);
       case "reset-login": return mockResetLogin(payload.username);
       case "minta-reset": return mockMintaReset(payload);
       case "get-reset-requests": return mockGetResetRequests();
@@ -523,6 +541,7 @@
     "hapus-ujian": "rpc_hapus_ujian",
     "aktifkan-ujian": "rpc_aktifkan_ujian",
     "selesai-ujian": "rpc_selesai_ujian",
+    "reset-app": "rpc_reset_app",
     "reset-login": "rpc_reset_login",
     "minta-reset": "rpc_minta_reset",
     "get-reset-requests": "rpc_get_reset_requests",

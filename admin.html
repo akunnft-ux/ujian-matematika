@@ -47,6 +47,7 @@
       <button class="tab" data-tab="ujian"><i class="fa-solid fa-screwdriver-wrench"></i> Ujian</button>
       <button class="tab" data-tab="user"><i class="fa-solid fa-users-gear"></i> Guru</button>
       <button class="tab" data-tab="hasil"><i class="fa-solid fa-chart-column"></i> Hasil</button>
+      <button class="tab" data-tab="reset"><i class="fa-solid fa-rotate-left"></i> Reset Aplikasi</button>
     </nav>
 
     <section id="tab-monitor" class="tab-panel">
@@ -152,6 +153,23 @@
           <button id="btnExportHasil" class="btn btn-outline" style="margin-left:auto"><i class="fa-solid fa-file-excel"></i> Export XLS</button>
         </div>
         <div id="hasilBox" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <section id="tab-reset" class="tab-panel hidden">
+      <div class="section-head"><h2>Reset Aplikasi</h2></div>
+      <p class="card-sub">Operasi penuh risiko — semua data terkait akan dihapus permanen dan <b>tidak bisa dibatalkan</b>. Setiap tombol memerlukan konfirmasi dengan mengetik <code>RESET</code>.</p>
+      <div class="grid grid-2 mt">
+        <div class="card">
+          <h3 class="card-title">Reset Data Siswa &amp; Data Lainnya</h3>
+          <p class="card-sub">Menghapus akun &amp; data siswa (NIS, jawaban, hasil, sesi), seluruh ujian, permintaan reset, dan akun guru. Yang tersisa: akun <b>admin</b> dan <b>bank soal</b>.</p>
+          <button id="btnResetData" class="btn btn-danger">Reset Data Siswa</button>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Reset Semua Data</h3>
+          <p class="card-sub">Menghapus <b>semua</b> data termasuk <b>bank soal</b>, ujian, dan akun guru. Yang tersisa hanya akun <b>admin</b>.</p>
+          <button id="btnResetSemua" class="btn btn-danger">Reset Semua Data</button>
+        </div>
       </div>
     </section>
   </main>
@@ -705,6 +723,22 @@
   }
 
   document.getElementById("btnExportHasil").addEventListener("click", exportHasilXls);
+
+  /* ===== RESET APLIKASI ===== */
+  window.__resetApp = function (mode) {
+    var label = mode === "semua" ? "SEMUA DATA (termasuk bank soal)" : "DATA SISWA & DATA LAINNYA";
+    var kunci = prompt('Ketik "RESET" untuk konfirmasi penghapusan permanen:\n\n' + label +
+      "\n\nTindakan ini TIDAK bisa dibatalkan.");
+    if (kunci === null) return;
+    if (String(kunci).trim().toUpperCase() !== "RESET") { toast("Konfirmasi salah — reset dibatalkan."); return; }
+    AppAPI.call("reset-app", { mode: mode }).then(function (res) {
+      if (!res.ok) { toast(res.error || "Gagal reset"); return; }
+      toast("Reset selesai — " + (res.data.guruDihapus || 0) + " akun guru, " + (res.data.bankSoalDihapus || 0) + " bank soal dihapus.");
+      muatMonitor();
+    }).catch(function (err) { toast(err.message); });
+  };
+  document.getElementById("btnResetData").addEventListener("click", function () { window.__resetApp("data"); });
+  document.getElementById("btnResetSemua").addEventListener("click", function () { window.__resetApp("semua"); });
 
   /* ===== AUTO-LOGIN jika sesi admin ada =====
    * Sesi divalidasi ke server dulu — jika sudah tidak berlaku

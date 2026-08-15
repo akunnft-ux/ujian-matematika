@@ -583,6 +583,58 @@ begin
   return json_build_object('ok', true, 'data', json_build_object('id', p_payload->>'id', 'status', 'draft', 'activeSessionsReset', true));
 end $$;
 
+-- Reset aplikasi (khusus admin). Dua mode:
+--   'data'  : hapus semua data siswa/ujian/jawaban/hasil/reset + akun guru.
+--             Tersisa: akun admin + bank soal.
+--   'semua' : sama seperti 'data' PLUS hapus bank soal.
+--             Tersisa: hanya akun admin.
+-- Sesi login admin (sessions.role = 'admin') dipertahankan agar admin tidak logout.
+create or replace function public.rpc_reset_app(p_payload jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_role text;
+  v_mode text;
+  v_guru integer;
+  v_bank integer;
+begin
+  v_role := public.sesi_role(p_payload->>'session_id');
+  if v_role is null or v_role <> 'admin' then
+    return json_build_object('ok', false, 'error', 'Khusus admin.');
+  end if;
+
+  v_mode := coalesce(p_payload->>'mode', 'data');
+  if v_mode not in ('data', 'semua') then
+    return json_build_object('ok', false, 'error', 'Mode tidak dikenal.');
+  end if;
+
+  select count(*) into v_guru from public.users where role = 'guru';
+
+  delete from public.kode_ujian;
+  delete from public.sesi;
+  delete from public.jawaban;
+  delete from public.hasil;
+  delete from public.reset_requests;
+  delete from public.ujian;
+  delete from public.users where role = 'guru';
+  -- Sesi login guru dihapus; sesi admin dipertahankan agar tidak terlogout.
+  delete from public.sessions where role <> 'admin';
+
+  if v_mode = 'semua' then
+    select count(*) into v_bank from public.soal_bank;
+    delete from public.soal_bank;
+  else
+    v_bank := 0;
+  end if;
+
+  return json_build_object('ok', true, 'data', json_build_object(
+    'mode', v_mode,
+    'guruDihapus', v_guru,
+    'bankSoalDihapus', v_bank
+  ));
+end $$;
+
 -- ============================================================
 -- RPC: JAWABAN & SUBMIT (scoring server-side)
 -- ============================================================
