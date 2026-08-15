@@ -447,6 +447,8 @@
       // Tampilkan tombol cetak & sembunyikan tombol generate
       document.getElementById("kartuGenerate").style.display = "none";
       document.getElementById("kartuCetak").style.display = "inline-block";
+      // Buka dialog cetak (Simpan sebagai PDF) langsung
+      window.print();
     }).catch(function (err) {
       toast(err.message);
     });

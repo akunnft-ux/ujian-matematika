@@ -219,6 +219,33 @@
   </div>
 </div>
 
+<!-- MODAL GENERATE KARTU -->
+<div class="modal-overlay" id="kartuModal">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <h3>Generate Kartu Siswa</h3>
+      <button class="modal-close" id="kartuClose">×</button>
+    </div>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
+        <label for="kartuJumlah">Kartu per halaman:</label>
+        <select id="kartuJumlah" style="padding:4px 8px; border-radius:6px">
+          <option value="6">6 kartu</option>
+          <option value="8">8 kartu</option>
+        </select>
+      </div>
+      <div id="kartuFilterInfo" class="mt card" style="font-size:13px"></div>
+      <div id="kartuPreview" class="mt" style="min-height:120px"></div>
+      <div id="kartuPrintArea" class="print-area kartu-grid kartu-grid--6"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button id="kartuGenerate" class="btn btn-success">Generate & Simpan</button>
+      <button id="kartuCetak" class="btn btn-primary" style="display:none">Cetak / Simpan PDF</button>
+      <button id="kartuCancel" class="btn btn-ghost">Batal</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/config.js?v=2"></script>
 <script src="js/auth.js?v=2"></script>
 <script src="js/api.js?v=2"></script>
@@ -633,6 +660,8 @@ function renderBank() {
       // Tampilkan tombol cetak & sembunyikan tombol generate
       document.getElementById("kartuGenerate").style.display = "none";
       document.getElementById("kartuCetak").style.display = "inline-block";
+      // Buka dialog cetak (Simpan sebagai PDF) langsung
+      window.print();
     }).catch(function (err) {
       toast(err.message);
     });
@@ -1080,32 +1109,5 @@ function renderBank() {
   }
 })();
 </script>
-
-<!-- MODAL GENERATE KARTU -->
-<div class="modal-overlay" id="kartuModal">
-  <div class="modal" style="max-width:720px">
-    <div class="modal-header">
-      <h3>Generate Kartu Siswa</h3>
-      <button class="modal-close" id="kartuClose">×</button>
-    </div>
-    <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
-      <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
-        <label for="kartuJumlah">Kartu per halaman:</label>
-        <select id="kartuJumlah" style="padding:4px 8px; border-radius:6px">
-          <option value="6">6 kartu</option>
-          <option value="8">8 kartu</option>
-        </select>
-      </div>
-      <div id="kartuFilterInfo" class="mt card" style="font-size:13px"></div>
-      <div id="kartuPreview" class="mt" style="min-height:120px"></div>
-      <div id="kartuPrintArea" class="print-area kartu-grid kartu-grid--6"></div>
-    </div>
-    <div class="modal-footer" style="justify-content:space-between">
-      <button id="kartuGenerate" class="btn btn-success">Generate & Simpan</button>
-      <button id="kartuCetak" class="btn btn-primary" style="display:none">Cetak / Simpan PDF</button>
-      <button id="kartuCancel" class="btn btn-ghost">Batal</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
