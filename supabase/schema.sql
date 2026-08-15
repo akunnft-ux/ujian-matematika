@@ -965,7 +965,7 @@ begin
   end if;
 
   -- Generate password random 8 karakter alfabetik dan update database
-  FOREACH v_username IN SELECT * FROM jsonb_array_elements(v_usernames) loop
+  FOR v_username IN SELECT jsonb_array_elements_text(v_usernames) LOOP
     -- Generate password acak 8 karakter readable (tanpa karakter ambigu 0/O/1/I/l)
     v_password := substring(
       translate(
