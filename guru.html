@@ -409,8 +409,7 @@ function renderBank() {
     head.innerHTML = '<span class="badge ' + (s.status === "aktif" ? "badge-green" : "badge-amber") + '">' + esc(s.status || "draft") + "</span>" +
       (s.kode ? '<span class="badge badge-blue">' + esc(s.kode) + "</span>" : "") +
       (s.jenjang ? '<span class="badge badge-slate">' + esc(s.jenjang) + "</span>" : "") +
-      (s.mapel ? '<span class="badge badge-slate">' + esc(s.mapel) + "</span>" : "") +
-      '<span class="muted" style="font-size:12px">' + esc(s.id || "") + "</span>";
+      (s.mapel ? '<span class="badge badge-slate">' + esc(s.mapel) + "</span>" : "");
     card.appendChild(head);
     var body = document.createElement("div");
     body.className = "mt";
@@ -967,7 +966,7 @@ function renderBank() {
       cb.checked = s.status === "aktif";
       var body = document.createElement("span"); body.style.flex = "1";
       var head = document.createElement("span"); head.style.display = "block"; head.style.fontSize = "12px"; head.style.color = "var(--text-soft)";
-      head.textContent = (s.jenjang || "") + " · " + (s.mapel || "") + " · " + s.id + " [" + s.status + "]";
+      head.textContent = (s.jenjang || "") + " · " + (s.mapel || "") + " [" + s.status + "]";
       var isi = document.createElement("span"); isi.style.display = "block";
       isi.appendChild(RenderSoal.blocks(s.blocks || []));
       body.appendChild(head); body.appendChild(isi);
