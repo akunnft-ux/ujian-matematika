@@ -725,17 +725,35 @@
   document.getElementById("btnExportHasil").addEventListener("click", exportHasilXls);
 
   /* ===== RESET APLIKASI ===== */
+  function setResetBusy(busy, mode) {
+    var btnData = document.getElementById("btnResetData");
+    var btnSemua = document.getElementById("btnResetSemua");
+    [btnData, btnSemua].forEach(function (b) { b.disabled = busy; });
+    if (busy) {
+      var b = mode === "semua" ? btnSemua : btnData;
+      if (!b.dataset.label) b.dataset.label = b.innerHTML;
+      b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menghapus data...';
+    } else {
+      [btnData, btnSemua].forEach(function (b) {
+        if (b.dataset.label) { b.innerHTML = b.dataset.label; delete b.dataset.label; }
+      });
+    }
+  }
+
   window.__resetApp = function (mode) {
     var label = mode === "semua" ? "SEMUA DATA (termasuk bank soal)" : "DATA SISWA & DATA LAINNYA";
     var kunci = prompt('Ketik "RESET" untuk konfirmasi penghapusan permanen:\n\n' + label +
       "\n\nTindakan ini TIDAK bisa dibatalkan.");
     if (kunci === null) return;
     if (String(kunci).trim().toUpperCase() !== "RESET") { toast("Konfirmasi salah — reset dibatalkan."); return; }
+    setResetBusy(true, mode);
     AppAPI.call("reset-app", { mode: mode }).then(function (res) {
       if (!res.ok) { toast(res.error || "Gagal reset"); return; }
       toast("Reset selesai — " + (res.data.guruDihapus || 0) + " akun guru, " + (res.data.bankSoalDihapus || 0) + " bank soal dihapus.");
       muatMonitor();
-    }).catch(function (err) { toast(err.message); });
+    }).catch(function (err) { toast(err.message); }).finally(function () {
+      setResetBusy(false, mode);
+    });
   };
   document.getElementById("btnResetData").addEventListener("click", function () { window.__resetApp("data"); });
   document.getElementById("btnResetSemua").addEventListener("click", function () { window.__resetApp("semua"); });

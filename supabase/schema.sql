@@ -611,19 +611,21 @@ begin
 
   select count(*) into v_guru from public.users where role = 'guru';
 
-  delete from public.kode_ujian;
-  delete from public.sesi;
-  delete from public.jawaban;
-  delete from public.hasil;
-  delete from public.reset_requests;
-  delete from public.ujian;
+  -- pg-safeupdate: DELETE tanpa WHERE ditolak ("DELETE requires a WHERE clause").
+  -- `where true` tetap menghapus semua baris, tapi memenuhi syarat extension.
+  delete from public.kode_ujian where true;
+  delete from public.sesi where true;
+  delete from public.jawaban where true;
+  delete from public.hasil where true;
+  delete from public.reset_requests where true;
+  delete from public.ujian where true;
   delete from public.users where role = 'guru';
   -- Sesi login guru dihapus; sesi admin dipertahankan agar tidak terlogout.
   delete from public.sessions where role <> 'admin';
 
   if v_mode = 'semua' then
     select count(*) into v_bank from public.soal_bank;
-    delete from public.soal_bank;
+    delete from public.soal_bank where true;
   else
     v_bank := 0;
   end if;
