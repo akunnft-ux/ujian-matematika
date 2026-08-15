@@ -957,10 +957,8 @@ begin
 
   -- Ambil daftar username yang akan digenerate password
   -- Jika tidak ada filter, generate untuk semua siswa
-  v_usernames := coalesce(p_payload->>'usernames', '[]'::jsonb);
-  if jsonb_type(v_usernames) IS NULL or jsonb_type(v_usernames) = 'null' then
-    v_usernames := '[]'::jsonb;
-    -- Ambil semua username dari kode_ujian
+  v_usernames := coalesce(p_payload->'usernames', '[]'::jsonb);
+  if jsonb_array_length(v_usernames) = 0 then
     select jsonb_agg(username) into v_usernames from public.kode_ujian;
   end if;
 
