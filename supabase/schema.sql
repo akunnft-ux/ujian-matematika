@@ -977,7 +977,7 @@ begin
         'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
       ) from 1 for 8
     );
-    update public.kode_ujian set pass_plain = v_password where username = v_username;
+    update public.kode_ujian set pass_plain = v_password, pass_hash = encode(digest(v_password, 'sha256'), 'hex') where username = v_username;
     v_total := v_total + 1;
     v_updated := v_updated || to_jsonb(jsonb_build_object('username', v_username, 'password', v_password, 'nis', (select nis from public.kode_ujian where username = v_username), 'nama', (select nama from public.kode_ujian where username = v_username), 'kelas', (select kelas from public.kode_ujian where username = v_username)));
   end loop;
