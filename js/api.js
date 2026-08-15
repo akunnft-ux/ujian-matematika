@@ -115,20 +115,28 @@
     return { ok: true, data: { role: user.role, username: user.username, sessionId: "sess-" + Date.now() } };
   }
 
-  function mockLoginSiswa(username, password, kode) {
+  function mockLoginSiswa(username, password) {
     var db = loadMock();
     username = String(username || "").trim();
     password = String(password || "");
-    kode = String(kode || "").trim();
     if (!username || !password) return { ok: false, error: "Isi username dan password." };
     var siswa = (db.kodeUjian || []).find(function (k) {
       return String(k.username || "").trim() === username && String(k.password || "") === password;
     });
     if (!siswa) return { ok: false, error: "Username atau password salah." };
-    var ujian = (db.ujian || []).find(function (u) { return u.kode === kode; });
-    if (!kode || !ujian) return { ok: false, error: "Kode ujian tidak terdeteksi. Periksa kembali." };
-    if (ujian.status !== "aktif") {
-      return { ok: false, error: "Ujian belum diaktifkan admin. Hubungi pengawas." };
+    var ujian;
+    var kodeAssign = String(siswa.ujianId || "").trim();
+    if (kodeAssign) {
+      ujian = (db.ujian || []).find(function (u) { return u.kode === kodeAssign; });
+      if (!ujian) return { ok: false, error: "Kode ujian tidak terdeteksi. Hubungi pengawas." };
+      if (ujian.status !== "aktif") {
+        return { ok: false, error: "Ujian belum diaktifkan admin. Hubungi pengawas." };
+      }
+    } else {
+      var aktif = (db.ujian || []).filter(function (u) { return u.status === "aktif"; });
+      if (aktif.length < 1) return { ok: false, error: "Tidak ada ujian aktif saat ini. Hubungi pengawas." };
+      if (aktif.length > 1) return { ok: false, error: "Ada lebih dari satu ujian aktif. Hubungi pengawas." };
+      ujian = aktif[0];
     }
     return { ok: true, data: { siswa: siswa, ujian: { id: ujian.id, kode: ujian.kode, nama: ujian.nama } } };
   }
@@ -499,7 +507,7 @@
   function mockHandle(action, payload) {
     switch (action) {
       case "login-admin": return mockLoginAdmin(payload.username, payload.password);
-      case "login-siswa": return mockLoginSiswa(payload.username, payload.password, payload.kode);
+      case "login-siswa": return mockLoginSiswa(payload.username, payload.password);
       case "mulai-ujian": return mockMulaiUjian(payload.username, payload.kode, payload.token, payload.session_id);
       case "bank-soal": return mockGetBankSoal();
       case "simpan-soal": return mockSimpanSoal(payload.soal);

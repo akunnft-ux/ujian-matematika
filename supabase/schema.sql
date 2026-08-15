@@ -202,11 +202,12 @@ as $$
 declare
   v_siswa public.kode_ujian%rowtype;
   v_ujian public.ujian%rowtype;
-  v_user  text; v_pass text; v_kode text;
+  v_user   text;
+  v_pass   text;
+  v_naktif integer;
 begin
   v_user := btrim(coalesce(p_payload->>'username', ''));
   v_pass := coalesce(p_payload->>'password', '');
-  v_kode := btrim(coalesce(p_payload->>'kode', ''));
   if v_user = '' or v_pass = '' then
     return json_build_object('ok', false, 'error', 'Isi username dan password.');
   end if;
@@ -214,12 +215,25 @@ begin
   if not found or v_siswa.pass_hash <> encode(digest(v_pass, 'sha256'), 'hex') then
     return json_build_object('ok', false, 'error', 'Username atau password salah.');
   end if;
-  select * into v_ujian from public.ujian where kode = v_kode;
-  if v_kode = '' or not found then
-    return json_build_object('ok', false, 'error', 'Kode ujian tidak terdeteksi. Periksa kembali.');
-  end if;
-  if v_ujian.status <> 'aktif' then
-    return json_build_object('ok', false, 'error', 'Ujian belum diaktifkan admin. Hubungi pengawas.');
+  -- Auto-detect ujian: prioritas kode ujian yang diassign ke siswa (ujian_id),
+  -- fallback ke satu-satunya ujian berstatus aktif.
+  if btrim(coalesce(v_siswa.ujian_id, '')) <> '' then
+    select * into v_ujian from public.ujian where kode = v_siswa.ujian_id;
+    if not found then
+      return json_build_object('ok', false, 'error', 'Kode ujian tidak terdeteksi. Hubungi pengawas.');
+    end if;
+    if v_ujian.status <> 'aktif' then
+      return json_build_object('ok', false, 'error', 'Ujian belum diaktifkan admin. Hubungi pengawas.');
+    end if;
+  else
+    select count(*) into v_naktif from public.ujian where status = 'aktif';
+    if v_naktif < 1 then
+      return json_build_object('ok', false, 'error', 'Tidak ada ujian aktif saat ini. Hubungi pengawas.');
+    end if;
+    if v_naktif > 1 then
+      return json_build_object('ok', false, 'error', 'Ada lebih dari satu ujian aktif. Hubungi pengawas.');
+    end if;
+    select * into v_ujian from public.ujian where status = 'aktif';
   end if;
   return json_build_object('ok', true, 'data', json_build_object(
     'siswa', json_build_object('username', v_siswa.username, 'nis', v_siswa.nis, 'nama', v_siswa.nama, 'kelas', v_siswa.kelas),
