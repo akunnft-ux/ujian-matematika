@@ -980,7 +980,7 @@ function renderBank() {
     if (!ids.length) { toast("Pilih minimal 1 soal"); return; }
     var ujian = {
       nama: document.getElementById("uNama").value.trim() || "Ujian",
-      kode: document.getElementById("uKode").value.trim() || "EXM-" + Date.now().toString().slice(-6),
+      kode: document.getElementById("uKode").value.trim().toUpperCase() || "EXM-" + Date.now().toString().slice(-6),
       mapel: document.getElementById("uMapel").value.trim(),
       jenjang: document.getElementById("uJenjang").value.trim(),
       durasiMenit: parseInt(document.getElementById("uDurasi").value, 10) || 60,

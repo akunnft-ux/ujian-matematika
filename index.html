@@ -305,7 +305,7 @@
   function doLogin() {
     var username = el.username.value.trim();
     var password = el.password.value;
-    var kode = el.token.value.trim();
+    var kode = el.token.value.trim().toUpperCase();
     if (!username || !password) { el.loginMsg.textContent = "Isi username dan password."; return; }
     if (!kode) { el.loginMsg.textContent = "Masukkan kode ujian."; return; }
     passwordSiswa = password;
@@ -334,7 +334,7 @@
 
   /* ===== MULAI UJIAN (validasi token) ===== */
   function doMulai() {
-    var token = el.tokenUjian.value.trim();
+    var token = el.tokenUjian.value.trim().toUpperCase();
     if (!token) { el.mulaiMsg.textContent = "Masukkan token ujian dari pengawas."; return; }
     el.btnMulai.disabled = true;
     el.mulaiMsg.textContent = "Memvalidasi token...";
