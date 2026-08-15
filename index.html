@@ -44,7 +44,10 @@
               <label for="loginPassword">Password</label>
               <div class="input-icon-wrap">
                 <i class="fa-solid fa-lock"></i>
-                <input id="loginPassword" class="input" type="password" placeholder="Password siswa" autocomplete="current-password">
+                <input id="loginPassword" class="input" type="password" placeholder="Password siswa" autocomplete="current-password" style="padding-right:42px">
+                <button type="button" id="togglePassword" class="input-toggle" aria-label="Tampilkan password" tabindex="-1">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
               </div>
             </div>
             <div class="field">
@@ -289,6 +292,14 @@
     el.screenLogin.classList.remove("hidden");
     el.tokenUjian.value = "";
     el.mulaiMsg.textContent = "";
+  });
+
+  document.getElementById("togglePassword").addEventListener("click", function () {
+    var inp = el.password;
+    var show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    this.querySelector("i").className = show ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
+    this.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
   });
 
   function doLogin() {

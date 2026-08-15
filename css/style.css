@@ -169,6 +169,15 @@ textarea.input { resize: vertical; min-height: 80px; font-family: inherit; }
   position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
   color: var(--slate-400); font-size: 14px;
 }
+.input-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--slate-400); font-size: 14px;
+  border-radius: 8px;
+}
+.input-toggle:hover { color: var(--slate-600); background: var(--slate-100); }
 
 /* ============================================================
  * Buttons
