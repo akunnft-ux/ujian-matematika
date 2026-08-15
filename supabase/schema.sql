@@ -636,10 +636,6 @@ declare
   v_kode_ujian text;
   v_kelas text;
   v_sess_user text;
-  v_start_ts timestamptz;
-  v_durasi_menit integer;
-  v_sisa_detik integer;
-  v_elapsed integer;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
   if v_role is null then
@@ -666,18 +662,6 @@ begin
                     where username = v_username and status = 'ACTIVE'
                       and ujian_id = coalesce(p_payload->>'kode', '')) then
       return json_build_object('ok', false, 'error', 'Sesi tidak aktif — jawaban sudah dikumpulkan atau belum mulai.');
-    end if;
-  end if;
-  -- Validasi waktu: pastikan sesi masih dalam batas waktu ujian
-  select mulai_ts, durasi_menit into v_start_ts, v_durasi_menit
-    from public.sesi join public.ujian on ujian.kode = sesi.ujian_id
-    where username = v_username and sesi.ujian_id = v_kode_ujian
-    limit 1;
-  if v_start_ts is not null and v_durasi_menit is not null then
-    v_sisa_detik := greatest(0, v_durasi_menit * 60 - extract(epoch from (now() - v_start_ts))::integer);
-    -- Cek apakah waktu sudah habis (sisaDetik <= 0 berarti waktu habis)
-    if v_sisa_detik <= 0 then
-      return json_build_object('ok', false, 'error', 'Waktu ujian telah berakhir. Tidak bisa mengirim jawaban.');
     end if;
   end if;
   v_ans := coalesce(p_payload->'jawaban', '[]'::jsonb);
