@@ -934,3 +934,50 @@ begin
   delete from public.users where username = v_username;
   return json_build_object('ok', true);
 end $$;
+
+-- ============================================================
+-- RPC: GENERATE KARTU SISWA
+-- ============================================================
+create or replace function public.rpc_generate_kartu(p_payload jsonb default '{}'::jsonb)
+returns json
+language plpgsql security definer set search_path = public, extensions
+as $$
+declare
+  v_role text;
+  v_usernames jsonb;
+  v_username text;
+  v_password text;
+  v_total integer := 0;
+  v_updated jsonb := '[]'::jsonb;
+begin
+  v_role := public.sesi_role(p_payload->>'session_id');
+  if v_role is null or v_role <> 'admin' then
+    return json_build_object('ok', false, 'error', 'Khusus admin.');
+  end if;
+
+  -- Ambil daftar username yang akan digenerate password
+  -- Jika tidak ada filter, generate untuk semua siswa
+  v_usernames := coalesce(p_payload->>'usernames', '[]'::jsonb);
+  if jsonb_type(v_usernames) IS NULL or jsonb_type(v_usernames) = 'null' then
+    v_usernames := '[]'::jsonb;
+    -- Ambil semua username dari kode_ujian
+    select jsonb_agg(username) into v_usernames from public.kode_ujian;
+  end if;
+
+  -- Generate password random 8 karakter alfabetik dan update database
+  FOREACH v_username IN SELECT * FROM jsonb_array_elements(v_usernames) loop
+    -- Generate password acak 8 karakter readable (tanpa karakter ambigu 0/O/1/I/l)
+    v_password := substring(
+      translate(
+        md5(random()::text),
+        '0123456789abcdef',
+        'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+      ) from 1 for 8
+    );
+    update public.kode_ujian set pass_plain = v_password where username = v_username;
+    v_total := v_total + 1;
+    v_updated := v_updated || to_jsonb(jsonb_build_object('username', v_username, 'password', v_password, 'nis', (select nis from public.kode_ujian where username = v_username), 'nama', (select nama from public.kode_ujian where username = v_username), 'kelas', (select kelas from public.kode_ujian where username = v_username)));
+  end loop;
+
+  return json_build_object('ok', true, 'data', json_build_object('total', v_total, 'updated', v_updated));
+end $$;

@@ -81,8 +81,35 @@
             <input id="dsCari" class="input" placeholder="Cari nama / NIS / username...">
           </div>
           <button id="btnRefreshSiswa" class="btn btn-outline" style="margin-left:auto">⟳ Refresh</button>
+          <button id="btnGenerateKartu" class="btn btn-success" style="margin-left:auto">Generate Kartu</button>
         </div>
         <div id="dsBox" class="table-wrap"></div>
+        <!-- Modal Generate Kartu -->
+        <div class="modal-overlay" id="kartuModal">
+          <div class="modal" style="max-width:720px">
+            <div class="modal-header">
+              <h3>Generate Kartu Siswa</h3>
+              <button class="modal-close" id="kartuClose">×</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:12px">
+              <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--slate-600)">
+                <label for="kartuJumlah">Kartu per halaman:</label>
+                <select id="kartuJumlah" style="padding:4px 8px; border-radius:6px">
+                  <option value="6">6 kartu</option>
+                  <option value="8">8 kartu</option>
+                </select>
+              </div>
+              <div id="kartuFilterInfo" class="mt card" style="font-size:13px"></div>
+              <div id="kartuPreview" class="mt" style="min-height:120px"></div>
+              <div id="kartuPrintArea" class="print-area kartu-grid kartu-grid--6"></div>
+            </div>
+            <div class="modal-footer" style="justify-content:space-between">
+              <button id="kartuGenerate" class="btn btn-success">Generate & Simpan</button>
+              <button id="kartuCetak" class="btn btn-primary" style="display:none">Cetak / Simpan PDF</button>
+              <button id="kartuCancel" class="btn btn-ghost">Batal</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -310,6 +337,137 @@
   document.getElementById("dsCari").addEventListener("input", renderDataSiswa);
   document.getElementById("btnRefreshSiswa").addEventListener("click", muatDataSiswa);
 
+  /* ===== GENERATE KARTU SISWA ===== */
+  var kartuData = [];
+  var kartuJumlah = 6; // default 6 per halaman
+  document.getElementById("btnGenerateKartu").addEventListener("click", function () {
+    var kelas = document.getElementById("dsKelas").value;
+    var q = document.getElementById("dsCari").value.trim().toLowerCase();
+    var filtered = siswaData.filter(function (s) {
+      if (kelas && (s.kelas || "") !== kelas) return false;
+      if (q) {
+        var hay = ((s.nama || "") + " " + (s.nis || "") + " " + (s.username || "")).toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+    kartuData = filtered;
+    if (!kartuData.length) {
+      document.getElementById("kartuFilterInfo").innerHTML = '<div class="alert alert-warn">Tidak ada siswa yang cocok dengan filter / pencarian.</div>';
+      document.getElementById("kartuJumlah").value = "6";
+      document.getElementById("kartuPreview").innerHTML = "";
+      document.getElementById("kartuPrintArea").className = "print-area kartu-grid kartu-grid--6";
+      document.getElementById("kartuGenerate").style.display = "inline-block";
+      document.getElementById("kartuCetak").style.display = "none";
+      document.getElementById("kartuModal").classList.add("open");
+      return;
+    }
+    document.getElementById("kartuFilterInfo").innerHTML = '<div class="alert alert-success">Menghasilkan kartu untuk ' + kartuData.length + ' siswa</div>';
+    // Render preview kartu (tanpa password asli, hanya placeholder)
+    renderKartuPreview();
+    document.getElementById("kartuJumlah").value = "6";
+    document.getElementById("kartuPrintArea").className = "print-area kartu-grid kartu-grid--6";
+    document.getElementById("kartuGenerate").style.display = "inline-block";
+    document.getElementById("kartuCetak").style.display = "none";
+    document.getElementById("kartuModal").classList.add("open");
+  });
+
+  function renderKartuPreview() {
+    var jumlah = parseInt(document.getElementById("kartuJumlah").value) || 6;
+    var gridClass = jumlah === 8 ? "kartu-grid--8" : "kartu-grid--6";
+    document.getElementById("kartuPrintArea").className = "print-area kartu-grid " + gridClass;
+    var html = kartuData.map(function (s) {
+      // Preview: password masih akan digenerate, jadi kita tampilkan placeholder
+      var passwordPlaceholder = "••••••••";
+      return "<div class='kartu'>" +
+        "<div class='head'>" +
+          "<div class='logo'>A</div>" +
+          "<div>" +
+            "<div class='school'>Ujian Matematika</div>" +
+            "<div class='nama'>" + esc(s.nama) + "</div>" +
+            "<div class='meta'>NIS: " + esc(s.nis || "-") + " | Kelas: " + (s.kelas || "-") + "</div>" +
+          "</div>" +
+        "</div>" +
+        "<div class='kredensial'>" +
+          "Username: <span class='user'>" + esc(s.username) + "</span><br>" +
+          "Password: " + passwordPlaceholder +
+        "</div>" +
+        "<div class='footer'>Kode: " + (s.ujianId || "-") + "</div>" +
+      "</div>";
+    }).join("");
+    document.getElementById("kartuPrintArea").innerHTML = html;
+  }
+
+  function renderKartuPrint(jumlah) {
+    var gridClass = jumlah === 8 ? "kartu-grid--8" : "kartu-grid--6";
+    document.getElementById("kartuPrintArea").className = "print-area kartu-grid " + gridClass;
+    var html = kartuData.map(function (s) {
+      var password = s.password || "••••••••";
+      return "<div class='kartu'>" +
+        "<div class='head'>" +
+          "<div class='logo'>A</div>" +
+          "<div>" +
+            "<div class='school'>Ujian Matematika</div>" +
+            "<div class='nama'>" + esc(s.nama) + "</div>" +
+            "<div class='meta'>NIS: " + esc(s.nis || "-") + " | Kelas: " + (s.kelas || "-") + "</div>" +
+          "</div>" +
+        "</div>" +
+        "<div class='kredensial'>" +
+          "Username: <span class='user'>" + esc(s.username) + "</span><br>" +
+          "Password: " + password +
+        "</div>" +
+        "<div class='footer'>Kode: " + (s.ujianId || "-") + "</div>" +
+      "</div>";
+    }).join("");
+    document.getElementById("kartuPrintArea").innerHTML = html;
+  }
+
+  document.getElementById("kartuJumlah").addEventListener("change", function () {
+    var jumlah = parseInt(this.value) || 6;
+    renderKartuPrint(jumlah);
+    kartuJumlah = jumlah;
+  });
+
+  document.getElementById("kartuGenerate").addEventListener("click", function () {
+    var usernames = kartuData.map(function (s) { return s.username; });
+    AppAPI.call("generate-kartu", { usernames: usernames }).then(function (res) {
+      if (!res.ok) {
+        toast(res.error || "Gagal generate kartu");
+        return;
+      }
+      var info = res.data;
+      toast("Berhasil generate kartu untuk " + info.total + " siswa");
+      // Update password di kartuData dari respons RPC
+      kartuData.forEach(function (s) {
+        var rec = info.updated.find(function (u) { return u.username === s.username; });
+        if (rec) s.password = rec.password;
+      });
+      // Render kartu print dengan password asli
+      renderKartuPrint(kartuJumlah);
+      // Tampilkan tombol cetak & sembunyikan tombol generate
+      document.getElementById("kartuGenerate").style.display = "none";
+      document.getElementById("kartuCetak").style.display = "inline-block";
+    }).catch(function (err) {
+      toast(err.message);
+    });
+  });
+
+  document.getElementById("kartuCetak").addEventListener("click", function () {
+    window.print();
+  });
+
+  document.getElementById("kartuClose").addEventListener("click", function () {
+    document.getElementById("kartuModal").classList.remove("open");
+  });
+
+  document.getElementById("kartuCancel").addEventListener("click", function () {
+    document.getElementById("kartuModal").classList.remove("open");
+  });
+
+  /* Mengatur jumlah kartu per halaman awal */
+  document.getElementById("kartuJumlah").value = "6";
+
+  /* ===== RESET LOGIN ===== */
   window.__resetLogin = function (username) {
     var pesan = "Reset login siswa \"" + username + "\"?\n\n" +
       "Sesi aktif dibebaskan dan permintaan ini dihapus dari daftar.\n" +

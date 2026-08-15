@@ -36,6 +36,7 @@ var AppConfig = {
     nilaiAkhirSaja: true,      // siswa tidak dapat feedback per soal
     adminTambahUser: true,     // admin menambah akun guru
     dataSiswa: true,           // tab Data Siswa di guru & admin (filter kelas + pencarian)
+    generateKartuSiswa: true,  // admin generate kartu siswa dengan password otomatis
     mintaResetSiswa: true,     // siswa minta reset login via popup -> antrean tab Reset Siswa admin
     monitorLive: true,         // admin melihat progress live
     resetLoginAdmin: true      // admin mereset login siswa

@@ -392,6 +392,30 @@
       };
     }) };
   }
+  function mockGenerateKartu(payload) {
+    var db = loadMock();
+    var usernames = (payload.usernames || []).filter(function (x) { return x; });
+    var targetUsernames = usernames.length > 0 ? usernames : ((db.kodeUjian || []).map(function (k) { return k.username; }));
+    var generated = [];
+    var total = 0;
+    targetUsernames.forEach(function (username) {
+      var password = "Pass" + Math.floor(Math.random() * 90000000 + 10000000); // 8 digit random
+      var record = (db.kodeUjian || []).find(function (k) { return k.username === username; });
+      if (record) {
+        record.password = password;
+        total++;
+        generated.push({
+          username: username,
+          password: password,
+          nis: record.nis || "",
+          nama: record.nama,
+          kelas: record.kelas || ""
+        });
+      }
+    });
+    saveMock(db);
+    return { ok: true, data: { total: total, updated: generated } };
+  }
   function mockGetUsers() { return { ok: true, data: (loadMock().users || []).slice() }; }
   function mockTambahUser(user) {
     var db = loadMock();
@@ -475,6 +499,7 @@
       case "get-progress": return mockGetProgress();
       case "get-hasil": return mockGetHasil();
       case "get-siswa": return mockGetSiswa();
+      case "generate-kartu": return mockGenerateKartu(payload);
       case "get-users": return mockGetUsers();
       case "tambah-user": return mockTambahUser(payload.user);
       case "hapus-user": return mockHapusUser(payload.username);
@@ -508,7 +533,8 @@
     "tambah-user": "rpc_tambah_user",
     "hapus-user": "rpc_hapus_user",
     "jawaban": "rpc_jawaban",
-    "submit-ujian": "rpc_submit_ujian"
+    "submit-ujian": "rpc_submit_ujian",
+    "generate-kartu": "rpc_generate_kartu"
   };
 
   function supabaseRequest(action, payload) {

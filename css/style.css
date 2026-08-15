@@ -532,3 +532,75 @@ table.data tr:hover td { background: var(--brand-50); }
   .card-body { padding: 18px 16px 22px; }
   .nav-grid { grid-template-columns: repeat(5, 1fr); gap: 7px; }
 }
+
+/* ============================================================
+ * Kartu Siswa Print (A4, 6–8 kartu per halaman)
+ * ============================================================ */
+.kartu-grid {
+  display: grid;
+  gap: 12px;
+  padding: 8px;
+}
+.kartu-grid--6 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, auto); }
+.kartu-grid--8 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, auto); }
+.kartu {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 12px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.kartu .head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.kartu .head .logo {
+  width: 28px; height: 28px;
+  background: var(--brand-100);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--brand-700);
+  flex-shrink: 0;
+}
+.kartu .head .school { font-size: 10px; color: var(--slate-500); }
+.kartu .content { flex: 1; }
+.kartu .nama { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.kartu .meta { font-size: 11px; color: var(--slate-600); margin-bottom: 6px; }
+.kartu .meta span { display: block; }
+.kartu .kredensial {
+  background: var(--slate-100);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  margin: 6px 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.kartu .user { color: var(--brand-700); font-weight: 700; }
+.kartu .footer { margin-top: 8px; font-size: 10px; color: var(--slate-500); text-align: right; }
+.kartu .footer .kode { font-weight: 700; color: var(--brand-700); }
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute; inset: 0;
+    padding: 8mm;
+    font-size: 12px;
+  }
+  @page { size: A4 portrait; margin: 8mm; }
+  .kartu { break-inside: avoid; page-break-inside: avoid; }
+}
