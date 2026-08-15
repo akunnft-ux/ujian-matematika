@@ -956,8 +956,8 @@ declare
   v_updated jsonb := '[]'::jsonb;
 begin
   v_role := public.sesi_role(p_payload->>'session_id');
-  if v_role is null or v_role <> 'admin' then
-    return json_build_object('ok', false, 'error', 'Khusus admin.');
+  if v_role is null or v_role not in ('guru','admin') then
+    return json_build_object('ok', false, 'error', 'Khusus guru/admin.');
   end if;
 
   -- Ambil daftar username yang akan digenerate password
