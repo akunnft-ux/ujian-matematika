@@ -774,7 +774,7 @@ begin
     return json_build_object('ok', false, 'error', 'Khusus admin.');
   end if;
   select coalesce(jsonb_agg(jsonb_build_object(
-           'username', ku.username, 'nis', ku.nis,
+           'username', ku.username, 'nis', ku.nis, 'nama', ku.nama,
            -- kode ujian yang benar = sesi yang sedang/sudah dikerjakan siswa
            'kode_ujian', coalesce(nullif(s.ujian_id, ''), ku.ujian_id, ''),
            'status', coalesce(s.status, 'INACTIVE'),

@@ -61,7 +61,7 @@
         </select>
         <div class="input-icon-wrap" style="max-width:280px; flex:1 1 200px; min-width:170px;">
           <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:14px;"></i>
-          <input id="monCari" class="input" placeholder="Cari NIS / username / kode ujian...">
+          <input id="monCari" class="input" placeholder="Cari nama / NIS / username / kode ujian...">
         </div>
       </div>
       <div id="monitorBox"></div>
@@ -261,17 +261,17 @@
     var list = monData.filter(function (s) {
       if (st && s.status !== st) return false;
       if (q) {
-        var hay = [s.nis, s.username, s.kode_ujian].join(" ").toLowerCase();
+        var hay = [s.nama, s.nis, s.username, s.kode_ujian].join(" ").toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
     });
     if (!monData.length) { box.innerHTML = '<div class="card muted center">Belum ada siswa terdaftar.</div>'; return; }
     if (!list.length) { box.innerHTML = '<div class="muted center">Tidak ada siswa yang cocok.</div>'; return; }
-    box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>NIS</th><th>Username</th><th>Kode Ujian</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
+    box.innerHTML = "<div class='table-wrap'><table class='data'><thead><tr><th>Nama</th><th>NIS</th><th>Username</th><th>Kode Ujian</th><th>Status</th><th>Login</th></tr></thead><tbody>" +
       list.map(function (s) {
         var sti = infoStatusSiswa(s.status);
-        return "<tr><td>" + esc(s.nis) + "</td><td>" + esc(s.username) + "</td><td><code>" + esc(s.kode_ujian || "-") + "</code></td><td><span class='badge " + sti.badge + "'>" + sti.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
+        return "<tr><td>" + esc(s.nama) + "</td><td>" + esc(s.nis) + "</td><td><code>" + esc(s.username) + "</code></td><td><code>" + esc(s.kode_ujian || "-") + "</code></td><td><span class='badge " + sti.badge + "'>" + sti.label + "</span></td><td class='muted'>" + (s.login_ts ? new Date(s.login_ts).toLocaleString() : "") + "</td></tr>";
       }).join("") + "</tbody></table></div>";
   }
 

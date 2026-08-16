@@ -382,6 +382,7 @@
       return {
         username: k.username,
         nis: k.nis || "",
+        nama: k.nama || "",
         kode_ujian: u ? u.kode : (sesiKode || k.ujianId || ""),
         status: s ? s.status : "INACTIVE",
         login_ts: s ? s.login_ts : null,
